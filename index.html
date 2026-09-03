@@ -4,61 +4,58 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>Animatronic Night — Charlie Kirk (Prototype)</title>
+<link rel="icon" href="/assets/favicon.svg" />
 <style>
   * { box-sizing: border-box; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; }
-  body { margin: 0; background:#111; color:#eee; }
+  body { margin: 0; background:#070707; color:#eee; }
   #game { max-width:1100px; margin:12px auto; padding:12px; }
   header { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
   h1 { margin:0; font-size:18px; }
   #status { text-align:right; }
   main { display:grid; grid-template-columns:260px 1fr 260px; gap:12px; }
-  .control-block { background:#1b1b1b; padding:10px; border-radius:6px; margin-bottom:12px; }
-  #cams button, #left-controls button, #startBtn { display:block; width:100%; margin:6px 0; padding:8px; background:#222; border:1px solid #333; color:#eee; border-radius:4px; cursor:pointer; }
-  #cameraView { background:#000; height:360px; border-radius:6px; overflow:hidden; display:flex; align-items:center; justify-content:center; border:4px solid #222; position:relative; }
-  #cameraTitle { margin-bottom:6px; }
+  .control-block { background:#101010; padding:10px; border-radius:6px; margin-bottom:12px; border:1px solid #1f1f1f;}
+  #cams button, #left-controls button, #startBtn { display:block; width:100%; margin:6px 0; padding:8px; background:#151515; border:1px solid #333; color:#eee; border-radius:4px; cursor:pointer; }
+  #cameraView { background:#000; height:420px; border-radius:6px; overflow:hidden; display:flex; align-items:center; justify-content:center; border:4px solid #222; position:relative; }
+  #cameraTitle { margin-bottom:6px; font-weight:700; color:#ddd; }
   .anim { width:72px; height:72px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:36px; color:#111; font-weight:bold; }
-  .anim.pos-0 { background:#f5a623; }
-  .anim.pos-1 { background:#d0021b; }
-  .anim.pos-2 { background:#417505; }
-  .anim.pos-3 { background:#9013fe; }
-  .anim.pos-4 { background:#50e3c2; }
-  .anim.pos-5 { background:#fff176; color:#000; }
-  .golden {
-    width:86px;
-    height:86px;
-    border-radius:8px;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    font-size:34px;
-    color:#222;
-    font-weight:900;
-    background: linear-gradient(180deg, #ffd54f, #ffb300);
-    border: 3px solid rgba(255, 223, 97, 0.9);
-    box-shadow: 0 0 18px rgba(255, 193, 7, 0.6), inset 0 -6px 10px rgba(0,0,0,0.12);
-    transform: translateY(0);
-  }
+  .golden { width:86px; height:86px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:34px; color:#222; font-weight:900; background: linear-gradient(180deg, #ffd54f, #ffb300); border: 3px solid rgba(255, 223, 97, 0.9); box-shadow: 0 0 18px rgba(255, 193, 7, 0.6), inset 0 -6px 10px rgba(0,0,0,0.12); transform: translateY(0); }
   .golden.sitting { transform: translateY(6px) rotate(-2deg); }
   #animList { list-style:none; padding:0; margin:0; }
-  #animList li { padding:6px 8px; border-bottom:1px solid #222; }
-  #log { background:#0b0b0b; padding:8px; height:160px; overflow:auto; border-radius:6px; font-size:13px; color:#cfcfcf; }
+  #animList li { padding:6px 8px; border-bottom:1px solid #151515; }
+  #log { background:#070707; padding:8px; height:160px; overflow:auto; border-radius:6px; font-size:13px; color:#cfcfcf; border:1px solid #101010; }
   footer { display:flex; justify-content:space-between; align-items:center; margin-top:12px; }
   #message { font-weight:700; }
-  #clock, #energy { font-size:14px; margin:2px 0; }
-  /* fullscreen jumpscare overlay */
-  #jumpscare {
-    position:fixed; inset:0; display:flex; align-items:center; justify-content:center;
-    background:rgba(0,0,0,0); pointer-events:none; opacity:0; transition: opacity 0.12s ease;
-    z-index:9999;
-  }
+  #clock, #energy { font-size:14px; margin:2px 0; color:#ddd; }
+  #goldenStat { font-size:13px; color:#ffd54f; margin-top:4px; }
+  .debug { background:#161616; padding:8px; border-radius:6px; border:1px dashed #333; margin-top:8px; }
+  .debug button, .debug input { width:100%; margin:6px 0; padding:6px; }
+
+  /* Camera scene styling */
+  .cam-scene { width:100%; height:100%; position:relative; color:#ddd; overflow:hidden; }
+  .cam-scene .grain { position:absolute; inset:0; pointer-events:none; background-image: linear-gradient(transparent 50%, rgba(0,0,0,0.03) 50%); background-size: 100% 2px; opacity:0.12; mix-blend-mode:overlay; }
+  .cam-inner { position:absolute; inset:12px; border:2px solid rgba(255,255,255,0.03); border-radius:6px; overflow:hidden; background:#060606; }
+  .office { display:flex; align-items:flex-end; justify-content:flex-end; background: radial-gradient(ellipse at 20% 20%, rgba(80,80,90,0.06), transparent 15%), linear-gradient(180deg, rgba(20,20,25,0.9), rgba(6,6,8,0.95)); }
+  .desk { width:58%; height:44%; margin:0 18px 18px 18px; background:linear-gradient(180deg,#151515,#0b0b0b); border-radius:6px; box-shadow:0 8px 30px rgba(0,0,0,0.8) inset; display:flex; align-items:center; justify-content:center; position:relative; }
+  .monitor { width:78%; height:78%; background:linear-gradient(180deg,#031018,#07121a); border-radius:4px; display:flex; align-items:center; justify-content:center; color:#89c2ff; font-weight:700; font-size:14px; box-shadow:0 6px 18px rgba(0,0,0,0.6) inset; }
+  .poster { position:absolute; left:12px; top:12px; width:120px; height:88px; background:linear-gradient(180deg,#2b2b2b,#151515); border-radius:4px; box-shadow: 0 3px 10px rgba(0,0,0,0.6); color:#f5a623; display:flex; align-items:center; justify-content:center; font-weight:900; font-size:12px; }
+  .stage { background: linear-gradient(180deg,#080505,#050303); display:flex; align-items:center; justify-content:center; position:relative; }
+  .curtain { position:absolute; inset:0; display:flex; justify-content:center; align-items:flex-start; pointer-events:none; }
+  .curtain .left, .curtain .right { width:50%; height:100%; background:linear-gradient(90deg, rgba(60,0,0,0.95), rgba(24,0,0,0.95)); clip-path: polygon(0 0, 100% 0, 85% 100%, 0 100%); }
+  .curtain .right { transform:translateX(6%); clip-path: polygon(15% 0, 100% 0, 100% 100%, 0 100%); }
+  .spotlight { position:absolute; width:34%; height:70%; bottom:6%; border-radius:50%; filter:blur(40px); opacity:0.55; background:radial-gradient(ellipse at 50% 20%, rgba(255,255,220,0.95), rgba(255,255,200,0.05) 35%); }
+  .stage-floor { position:absolute; bottom:6%; left:6%; right:6%; height:28%; background:linear-gradient(180deg,#120a07,#090507); border-top:3px solid rgba(255,255,255,0.02); display:flex; align-items:center; justify-content:center; }
+  .mannequin { width:120px; height:120px; background:linear-gradient(180deg,#f2cfb3,#c78f6a); border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:44px; color:#2b1b10; box-shadow: 0 10px 30px rgba(0,0,0,0.6); }
+  .hall { display:flex; align-items:center; justify-content:center; background:linear-gradient(180deg,#020203,#050406); position:relative; }
+  .hall .door { position:absolute; left:10%; top:18%; width:16%; height:48%; background:linear-gradient(180deg,#1b1b1b,#0e0e0e); border-radius:4px; box-shadow:inset 0 3px 8px rgba(0,0,0,0.6); }
+  .hall .light { position:absolute; right:10%; top:12%; width:12%; height:12%; background:radial-gradient(circle,#fff 0%,rgba(255,255,210,0.12) 40%, transparent 60%); border-radius:50%; opacity:0.12; }
+  .anim-overlay { position:absolute; pointer-events:none; }
+  #cameraHeader { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
+  #cameraHeader .label { color:#e7e7e7; font-weight:700; }
+  #jumpscare { position:fixed; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,0); pointer-events:none; opacity:0; transition: opacity 0.12s ease; z-index:9999; }
   #jumpscare.show { pointer-events:auto; opacity:1; }
-  #jumpscare .image {
-    width:100%; height:100%; display:flex; align-items:center; justify-content:center;
-    background:#000; color:#fff; font-size:48px; font-weight:900; flex-direction:column;
-  }
+  #jumpscare .image { width:100%; height:100%; display:flex; align-items:center; justify-content:center; background:#000; color:#fff; font-size:48px; font-weight:900; flex-direction:column; }
   #jumpscare .image .big { font-size:18vw; line-height:0.8; text-shadow: 0 0 20px rgba(255,0,0,0.6); }
   #jumpscare .image .sub { font-size:6vw; opacity:0.9; margin-top:12px; }
-  /* small mobile tweak */
   @media(max-width:600px){ #jumpscare .image .big{ font-size:36vw } #jumpscare .image .sub{ font-size:10vw } }
 </style>
 </head>
@@ -69,6 +66,7 @@
     <div id="status">
       <div id="clock">Night: 0</div>
       <div id="energy">Energy: <span id="energyVal">100</span>%</div>
+      <div id="goldenStat">Golden spawns: <span id="goldenCount">0</span></div>
     </div>
   </header>
 
@@ -84,18 +82,30 @@
       <div class="control-block">
         <h3>Cameras</h3>
         <div id="cams">
-          <button data-cam="0">Cam 0 (Stage)</button>
+          <button data-cam="0">Cam 0 (Security Office)</button>
           <button data-cam="1">Cam 1</button>
           <button data-cam="2">Cam 2</button>
           <button data-cam="3">Cam 3</button>
           <button data-cam="4">Cam 4</button>
           <button data-cam="5">Cam 5 (Hall)</button>
+          <button data-cam="6">Cam 6 (Main Stage)</button>
+        </div>
+        <div id="debugPanel" class="debug" style="display:none;">
+          <strong>DEBUG</strong>
+          <button id="forceSpawn">Force Golden Spawn</button>
+          <label>Spawn denominator (smaller = more frequent)</label>
+          <input id="spawnDenom" type="number" min="1" step="1" />
+          <button id="applySpawnDenom">Apply Spawn Rate</button>
+          <button id="resetGoldenCount">Reset Golden Count</button>
         </div>
       </div>
     </section>
 
     <section id="view">
-      <div id="cameraTitle">Camera: Stage (0)</div>
+      <div id="cameraHeader">
+        <div id="cameraTitle">Camera: Security Office (0)</div>
+        <div id="cameraInfo"></div>
+      </div>
       <div id="cameraView"></div>
     </section>
 
@@ -127,7 +137,7 @@
 
 <script>
 (() => {
-  // --- DOM refs ---
+  // DOM
   const energyEl = document.getElementById('energyVal');
   const clockEl = document.getElementById('clock');
   const cameraView = document.getElementById('cameraView');
@@ -139,22 +149,20 @@
   const jumpscare = document.getElementById('jumpscare');
   const jumpscareTitle = document.getElementById('jumpscareTitle');
   const jumpscareSub = document.getElementById('jumpscareSub');
+  const goldenCountEl = document.getElementById('goldenCount');
+  const debugPanel = document.getElementById('debugPanel');
 
-  // --- audio setup (created on first user gesture to satisfy autoplay restrictions) ---
+  // audio context (on demand)
   let audioCtx = null;
   function ensureAudioContext() {
-    if (!audioCtx) {
-      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    }
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     if (audioCtx.state === 'suspended') audioCtx.resume();
     return audioCtx;
   }
 
   function playScreamAndBoom() {
-    // Build a scream-ish noise + bandpass, then a low boom. Synthesized to avoid external files.
     const ctx = ensureAudioContext();
-    // scream (noise + bandpass sweep)
-    const len = 1.2; // seconds
+    const len = 1.2;
     const sampleRate = ctx.sampleRate;
     const buffer = ctx.createBuffer(1, Math.floor(len * sampleRate), sampleRate);
     const data = buffer.getChannelData(0);
@@ -176,14 +184,11 @@
     bp.connect(sg);
     sg.connect(ctx.destination);
 
-    // frequency sweep to feel like a scream
     bp.frequency.linearRampToValueAtTime(2400, ctx.currentTime + 0.35);
     bp.frequency.linearRampToValueAtTime(400, ctx.currentTime + 0.95);
-
     src.start();
 
-    // boom after a short delay
-    const boomDelay = 0.65; // seconds after start of scream
+    const boomDelay = 0.65;
     setTimeout(() => {
       const osc = ctx.createOscillator();
       const g = ctx.createGain();
@@ -193,7 +198,6 @@
       g.gain.setValueAtTime(0.0001, ctx.currentTime);
       g.gain.linearRampToValueAtTime(1.0, ctx.currentTime + 0.01);
       g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 1.0);
-      // add a bit of distortion/lowpass to make it punchier
       const lp = ctx.createBiquadFilter();
       lp.type = 'lowpass';
       lp.frequency.setValueAtTime(120, ctx.currentTime);
@@ -205,7 +209,7 @@
     }, boomDelay * 1000);
   }
 
-  // --- game state ---
+  // Game state
   let energy = 100;
   let nightTime = 0;
   const nightLength = 60; // seconds to survive
@@ -214,323 +218,125 @@
   let currentCam = 0;
 
   const cams = [
-    { id:0, name:"Stage" },
+    { id:0, name:"Security Office (FNAF3-style)" },
     { id:1, name:"Cam 1" },
     { id:2, name:"Cam 2" },
     { id:3, name:"Cam 3" },
     { id:4, name:"Cam 4" },
-    { id:5, name:"Hall / Office" }
+    { id:5, name:"Cam 5 (Hall)" },
+    { id:6, name:"Main Stage (FNAF2-style)" }
   ];
 
-  // Charlie Kirk (he) — single animatronic
-  const anims = [
-    { id: 'CK', label: 'Charlie Kirk', pos: 0, aggressiveness: 0.12, emoji: '🎭', side: 'left' }
-  ];
+  const OFFICE_POS = 6;
+  const MAX_POS = OFFICE_POS;
 
-  // Golden Trump — extremely rare male variant (he)
-  const goldenTrump = {
-    active: false,
-    pos: 2, // middle of the room
-    timer: 0,
-    spawnDenominator: 726279 // 1 / 726,279 chance per tick
-  };
+  const anims = [ { id: 'CK', label: 'Charlie Kirk', pos: 0, aggressiveness: 0.12, emoji: '🎭', side: 'left' } ];
+
+  const goldenTrump = { active:false, pos: Math.floor(MAX_POS/2), timer:0, spawnDenominator: 726279 };
 
   const state = { leftDoor:false, rightDoor:false, leftLight:false, rightLight:false };
 
-  // --- helpers ---
-  function updateEnergy(delta) {
-    energy = Math.max(0, Math.min(100, energy + delta));
-    energyEl.textContent = Math.round(energy);
-  }
+  // Persistent stats in localStorage
+  function getGoldenCount() { try { return parseInt(localStorage.getItem('goldenTrumpSpawns') || '0', 10) || 0; } catch(e) { return 0; } }
+  function setGoldenCount(n) { try { localStorage.setItem('goldenTrumpSpawns', String(n)); } catch(e){} updateGoldenCountDisplay(); }
+  function incrementGoldenCount() { const n = getGoldenCount() + 1; setGoldenCount(n); log(`Golden Trump total spawns (persisted): ${n}`); }
+  function updateGoldenCountDisplay() { if (goldenCountEl) goldenCountEl.textContent = String(getGoldenCount()); }
 
-  function log(msg) {
-    const t = new Date().toLocaleTimeString();
-    logEl.innerHTML = `<div>[${t}] ${msg}</div>` + logEl.innerHTML;
+  // Try load images; if available, game will display them instead of emoji
+  let useImages = false;
+  const charliePath = '/assets/charlie.svg';
+  const goldenPath = '/assets/golden.svg';
+  async function probeImages() {
+    try {
+      const r1 = await fetch(charliePath, { method:'HEAD' });
+      const r2 = await fetch(goldenPath, { method:'HEAD' });
+      if (r1.ok && r2.ok) useImages = true;
+    } catch(e) { useImages = false; }
   }
+  probeImages();
+
+  function updateEnergy(delta) { energy = Math.max(0, Math.min(100, energy + delta)); energyEl.textContent = Math.round(energy); }
+  function log(msg) { const t = new Date().toLocaleTimeString(); logEl.innerHTML = `<div>[${t}] ${msg}</div>` + logEl.innerHTML; }
 
   function renderAnimList() {
     animList.innerHTML = '';
-    anims.forEach(a => {
-      const li = document.createElement('li');
-      li.textContent = `${a.label} (pos ${a.pos})`;
-      animList.appendChild(li);
-    });
-    if (goldenTrump.active) {
-      const li = document.createElement('li');
-      li.textContent = `!!! Golden Trump is present (pos ${goldenTrump.pos}) — he is sitting`;
-      li.style.color = '#ffd54f';
-      li.style.fontWeight = '800';
-      animList.insertBefore(li, animList.firstChild);
+    anims.forEach(a => { const li = document.createElement('li'); li.textContent = `${a.label} (pos ${a.pos})`; animList.appendChild(li); });
+    if (goldenTrump.active) { const li = document.createElement('li'); li.textContent = `!!! Golden Trump is present (pos ${goldenTrump.pos}) — he is sitting`; li.style.color = '#ffd54f'; li.style.fontWeight = '800'; animList.insertBefore(li, animList.firstChild); }
+  }
+
+  function createAnimElement(a) {
+    if (useImages && a.id === 'CK') {
+      const img = document.createElement('img'); img.src = charliePath; img.style.width = '84px'; img.style.height='84px'; img.alt = a.label; return img;
     }
+    const d = document.createElement('div'); d.className = 'anim'; d.textContent = a.emoji; return d;
+  }
+
+  function createGoldenElement() {
+    if (useImages) { const img = document.createElement('img'); img.src = goldenPath; img.style.width='96px'; img.style.height='96px'; img.alt='Golden Trump'; return img; }
+    const g = document.createElement('div'); g.className = 'golden sitting'; g.textContent = '🟡T'; return g;
   }
 
   function renderCamera() {
     cameraView.innerHTML = '';
     cameraTitle.textContent = `Camera: ${cams[currentCam].name} (${currentCam})`;
+    const scene = document.createElement('div'); scene.className = 'cam-scene'; const inner = document.createElement('div'); inner.className = 'cam-inner'; const grain = document.createElement('div'); grain.className = 'grain'; scene.appendChild(inner); scene.appendChild(grain);
 
-    const cols = document.createElement('div');
-    cols.style.display = 'flex';
-    cols.style.width = '90%';
-    cols.style.justifyContent = 'space-between';
-
-    for (let p=0;p<6;p++){
-      const col = document.createElement('div');
-      col.style.flex = '1';
-      col.style.margin = '6px';
-      col.style.height = '84%';
-      col.style.borderRadius = '6px';
-      col.style.background = (p === currentCam) ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.02)';
-      col.style.position = 'relative';
-      col.style.display = 'flex';
-      col.style.alignItems = 'center';
-      col.style.justifyContent = 'center';
-      col.style.flexDirection = 'column';
-
-      const lbl = document.createElement('div');
-      lbl.textContent = `Pos ${p}`;
-      lbl.style.position = 'absolute';
-      lbl.style.top = '6px';
-      lbl.style.left = '6px';
-      lbl.style.fontSize = '12px';
-      lbl.style.color = '#bbb';
-      col.appendChild(lbl);
-
-      // show anims
-      anims.filter(a => a.pos === p).forEach(a => {
-        const animEl = document.createElement('div');
-        animEl.className = 'anim pos-' + p;
-        animEl.textContent = a.emoji;
-        animEl.title = a.label;
-        col.appendChild(animEl);
-      });
-
-      // show golden if active at this position (sitting like Golden Freddy)
-      if (goldenTrump.active && goldenTrump.pos === p) {
-        const g = document.createElement('div');
-        g.className = 'golden sitting';
-        g.textContent = '🟡T';
-        g.title = 'Golden Trump (rare spawn) — he is sitting';
-        col.appendChild(g);
-      }
-
-      cols.appendChild(col);
+    if (currentCam === 0) {
+      inner.classList.add('office'); const poster = document.createElement('div'); poster.className='poster'; poster.textContent='REPAIR\nCREW'; inner.appendChild(poster); const desk = document.createElement('div'); desk.className='desk'; const monitor = document.createElement('div'); monitor.className='monitor'; monitor.textContent='SECURITY FEED'; desk.appendChild(monitor); inner.appendChild(desk);
+      anims.filter(a=>a.pos===currentCam).forEach(a=>{ const animEl = document.createElement('div'); animEl.className='anim-overlay'; animEl.style.left='28%'; animEl.style.bottom='36%'; animEl.appendChild(createAnimElement(a)); inner.appendChild(animEl); });
+      if (goldenTrump.active && goldenTrump.pos===currentCam) { const g = createGoldenElement(); g.style.position='absolute'; g.style.left='42%'; g.style.top='28%'; inner.appendChild(g); }
+    } else if (currentCam === 6) {
+      inner.classList.add('stage'); const curtain = document.createElement('div'); curtain.className='curtain'; curtain.innerHTML=`<div class="left"></div><div class="right"></div>`; inner.appendChild(curtain); const spotlightL = document.createElement('div'); spotlightL.className='spotlight'; spotlightL.style.left='22%'; inner.appendChild(spotlightL); const spotlightR = document.createElement('div'); spotlightR.className='spotlight'; spotlightR.style.right='22%'; inner.appendChild(spotlightR); const floor = document.createElement('div'); floor.className='stage-floor'; const man = document.createElement('div'); man.className='mannequin'; man.textContent='♪'; floor.appendChild(man); inner.appendChild(floor);
+      anims.filter(a=>a.pos===currentCam).forEach(a=>{ const animEl=document.createElement('div'); animEl.className='anim-overlay'; animEl.style.left='48%'; animEl.style.bottom='32%'; animEl.appendChild(createAnimElement(a)); inner.appendChild(animEl); });
+      if (goldenTrump.active && goldenTrump.pos===currentCam) { const g=createGoldenElement(); g.style.position='absolute'; g.style.left='46%'; g.style.top='34%'; inner.appendChild(g); }
+    } else {
+      inner.classList.add('hall'); const door=document.createElement('div'); door.className='door'; inner.appendChild(door); const light=document.createElement('div'); light.className='light'; inner.appendChild(light);
+      anims.filter(a=>a.pos===currentCam).forEach(a=>{ const animEl=document.createElement('div'); animEl.className='anim-overlay'; animEl.style.left='46%'; animEl.style.bottom='36%'; animEl.appendChild(createAnimElement(a)); inner.appendChild(animEl); });
+      if (goldenTrump.active && goldenTrump.pos===currentCam) { const g=createGoldenElement(); g.style.position='absolute'; g.style.left='48%'; g.style.top='32%'; inner.appendChild(g); }
     }
 
-    cameraView.appendChild(cols);
-
-    if (currentCam === 5) {
-      const overlay = document.createElement('div');
-      overlay.style.position='absolute';
-      overlay.style.bottom='12px';
-      overlay.style.right='12px';
-      overlay.style.display='flex';
-      overlay.style.gap='10px';
-      overlay.style.fontSize='14px';
-      overlay.style.color='#fff';
-      overlay.innerHTML = `Left door: ${state.leftDoor ? 'CLOSED' : 'OPEN'} • Right door: ${state.rightDoor ? 'CLOSED' : 'OPEN'} • L: ${state.leftLight ? 'ON' : 'OFF'} R: ${state.rightLight ? 'ON' : 'OFF'}`;
-      cameraView.appendChild(overlay);
-    }
-  }
-
-  function applyCameraEnergy() { updateEnergy(-0.7); }
-  function applyDoorsLightsEnergy() {
-    let drain = 0;
-    if (state.leftDoor) drain += 0.8;
-    if (state.rightDoor) drain += 0.8;
-    if (state.leftLight) drain += 0.5;
-    if (state.rightLight) drain += 0.5;
-    updateEnergy(-drain);
+    const overlay = document.createElement('div'); overlay.style.position='absolute'; overlay.style.left='8px'; overlay.style.bottom='8px'; overlay.style.fontSize='12px'; overlay.style.color='rgba(200,200,200,0.8)'; overlay.style.fontFamily='monospace'; overlay.textContent = `${new Date().toLocaleTimeString()} • CAM ${currentCam}`; inner.appendChild(overlay);
+    scene.appendChild(inner); cameraView.appendChild(scene);
   }
 
   function trySpawnGolden() {
     if (goldenTrump.active) return;
     if (Math.floor(Math.random() * goldenTrump.spawnDenominator) === 0) {
-      goldenTrump.active = true;
-      goldenTrump.timer = 8; // seconds until attack if not checked on cams
-      log('A cold hush falls over the building... A rare presence has appeared.');
-      log('Golden Trump has spawned in the middle of the rooms. Go back to the cameras to send him away (very rare). He is male — check cams to dispel him.');
-      renderAnimList();
-      renderCamera();
+      goldenTrump.active = true; goldenTrump.timer = 8; incrementGoldenCount(); log('A cold hush falls over the building... A rare presence has appeared.'); log('Golden Trump has spawned in the middle of the rooms. Go back to the cameras to send him away (very rare). He is male — check cams to dispel him.'); renderAnimList(); renderCamera();
     }
   }
 
-  // full-screen jumpscare + play sound, then end game
-  function showJumpscare(victimLabel) {
-    // prepare overlay
-    jumpscareTitle.textContent = victimLabel;
-    jumpscareSub.textContent = 'YOU DIED';
-    jumpscare.classList.add('show');
-    // flash color and enlarge, then remove after a bit
-    setTimeout(() => {
-      jumpscare.querySelector('.image').style.background = '#220000';
-      jumpscareTitle.style.color = '#ffdddd';
-    }, 40);
-    // play scream+boom
-    try { playScreamAndBoom(); } catch(e) {}
-    // keep overlay a moment, then allow restart view
-    setTimeout(() => {
-      jumpscare.classList.remove('show');
-    }, 2200);
-  }
+  function showJumpscare(victimLabel) { jumpscareTitle.textContent = victimLabel; jumpscareSub.textContent = 'YOU DIED'; jumpscare.classList.add('show'); setTimeout(()=>{ jumpscare.querySelector('.image').style.background='#220000'; jumpscareTitle.style.color='#ffdddd'; },40); try{ playScreamAndBoom(); }catch(e){} setTimeout(()=>{ jumpscare.classList.remove('show'); },2200); }
 
-  function endGame(won, reason, killerLabel) {
-    running = false;
-    clearInterval(tickInterval);
-    messageEl.textContent = reason;
-    messageEl.style.color = won ? 'lime' : 'red';
-    log(reason + (won ? ' — WIN' : ' — GAME OVER'));
-    startBtn.disabled = false;
-    if (!won) {
-      // play jumpscare for the killer
-      showJumpscare(killerLabel || 'JUMPSCARE');
-    }
-  }
+  function endGame(won, reason, killerLabel) { running=false; clearInterval(tickInterval); messageEl.textContent=reason; messageEl.style.color = won ? 'lime' : 'red'; log(reason + (won ? ' — WIN' : ' — GAME OVER')); startBtn.disabled=false; if (!won) showJumpscare(killerLabel||'JUMPSCARE'); }
 
-  // --- tick (game loop) ---
   function tick() {
-    if (!running) return;
-    nightTime++;
-    clockEl.textContent = `Night: ${nightTime} / ${nightLength}`;
+    if (!running) return; nightTime++; clockEl.textContent = `Night: ${nightTime} / ${nightLength}`; trySpawnGolden();
+    anims.forEach(a=>{ if (a.pos>=OFFICE_POS) return; const base = a.aggressiveness + (nightTime/nightLength)*0.22; let penalty=0; if (a.pos>=OFFICE_POS-2){ if ((a.side==='left'&&state.leftDoor) || (a.side==='right'&&state.rightDoor)) penalty+=0.6; if ((a.side==='left'&&state.leftLight)||(a.side==='right'&&state.rightLight)) penalty+=0.4; } const chance=Math.max(0,base-penalty); if (Math.random()<chance){ a.pos=Math.min(OFFICE_POS,a.pos+1); log(`${a.label} moves to pos ${a.pos}`); } });
+    if (goldenTrump.active) { goldenTrump.timer = Math.max(0,goldenTrump.timer-1); if (goldenTrump.timer<=0){ endGame(false,'Golden Trump appeared and attacked!','Golden Trump'); return; } }
+    applyCameraEnergy(); applyDoorsLightsEnergy(); renderAnimList(); renderCamera(); anims.forEach(a=>{ if (a.pos>=OFFICE_POS){ const doorClosed = (a.side==='left') ? state.leftDoor : state.rightDoor; const lightOn = (a.side==='left') ? state.leftLight : state.rightLight; let attackChance = 0.85; if (doorClosed) attackChance -= 0.85; if (lightOn) attackChance -= 0.4; if (energy<=0){ log('Energy depleted! Systems failing...'); state.leftDoor=false; state.rightDoor=false; } if (!doorClosed && Math.random()<attackChance){ endGame(false,`${a.label} got you!`,a.label); } } }); if (energy<=0){ messageEl.textContent='WARNING: energy depleted'; messageEl.style.color='orange'; } else messageEl.textContent=''; if (nightTime>=nightLength) endGame(true,'You survived the night!'); }
 
-    // possible golden spawn each second
-    trySpawnGolden();
+  function applyCameraEnergy(){ updateEnergy(-0.7); }
+  function applyDoorsLightsEnergy(){ let drain=0; if(state.leftDoor) drain+=0.8; if(state.rightDoor) drain+=0.8; if(state.leftLight) drain+=0.5; if(state.rightLight) drain+=0.5; updateEnergy(-drain); }
 
-    anims.forEach(a => {
-      if (a.pos >= 5) return;
-      const base = a.aggressiveness + (nightTime / nightLength) * 0.22;
-      let penalty = 0;
-      if (a.pos >= 4) {
-        if ((a.side === 'left' && state.leftDoor) || (a.side === 'right' && state.rightDoor)) penalty += 0.6;
-        if ((a.side === 'left' && state.leftLight) || (a.side === 'right' && state.rightLight)) penalty += 0.4;
-      }
-      const chance = Math.max(0, base - penalty);
-      if (Math.random() < chance) {
-        a.pos = Math.min(5, a.pos + 1);
-        log(`${a.label} moves to pos ${a.pos}`);
-      }
-    });
+  // Controls & Debug
+  document.getElementById('leftDoor').addEventListener('click', ()=>{ ensureAudioContext(); state.leftDoor = !state.leftDoor; log(`Left door ${state.leftDoor? 'CLOSED':'OPENED'}`); renderCamera(); updateEnergy(-1.5); });
+  document.getElementById('rightDoor').addEventListener('click', ()=>{ ensureAudioContext(); state.rightDoor = !state.rightDoor; log(`Right door ${state.rightDoor? 'CLOSED':'OPENED'}`); renderCamera(); updateEnergy(-1.5); });
+  document.getElementById('leftLight').addEventListener('click', ()=>{ ensureAudioContext(); state.leftLight = !state.leftLight; log(`Left light ${state.leftLight? 'ON':'OFF'}`); renderCamera(); updateEnergy(-0.8); });
+  document.getElementById('rightLight').addEventListener('click', ()=>{ ensureAudioContext(); state.rightLight = !state.rightLight; log(`Right light ${state.rightLight? 'ON':'OFF'}`); renderCamera(); updateEnergy(-0.8); });
 
-    // goldenTrump countdown
-    if (goldenTrump.active) {
-      goldenTrump.timer = Math.max(0, goldenTrump.timer - 1);
-      if (goldenTrump.timer <= 0) {
-        // he attacks (instant kill)
-        endGame(false, 'Golden Trump appeared and attacked!', 'Golden Trump');
-        return;
-      }
-    }
+  document.getElementById('cams').addEventListener('click',(e)=>{ const b=e.target.closest('button'); if(!b) return; ensureAudioContext(); const cam=parseInt(b.dataset.cam); currentCam=cam; renderCamera(); updateEnergy(-0.5); if(goldenTrump.active){ goldenTrump.active=false; goldenTrump.timer=0; log('You checked the cameras — Golden Trump has vanished. He was male.'); renderAnimList(); renderCamera(); } });
 
-    applyCameraEnergy();
-    applyDoorsLightsEnergy();
+  // debug panel wiring
+  function showDebugIfRequested(){ const url = new URL(window.location.href); if (url.searchParams.get('debug')==='1'){ debugPanel.style.display='block'; document.getElementById('spawnDenom').value = String(goldenTrump.spawnDenominator); document.getElementById('forceSpawn').addEventListener('click', ()=>{ if(!goldenTrump.active){ goldenTrump.active=true; goldenTrump.timer=8; incrementGoldenCount(); log('DEBUG: Forced Golden Trump spawn'); renderAnimList(); renderCamera(); } }); document.getElementById('applySpawnDenom').addEventListener('click', ()=>{ const v = parseInt(document.getElementById('spawnDenom').value,10) || goldenTrump.spawnDenominator; goldenTrump.spawnDenominator = Math.max(1,v); log('DEBUG: spawnDenominator set to '+goldenTrump.spawnDenominator); }); document.getElementById('resetGoldenCount').addEventListener('click', ()=>{ setGoldenCount(0); log('DEBUG: Golden spawn count reset'); }); } }
+  showDebugIfRequested();
 
-    renderAnimList();
-    renderCamera();
+  document.getElementById('startBtn').addEventListener('click', ()=>{ ensureAudioContext(); if(running) return; energy=100; nightTime=0; running=true; anims.forEach(a=>a.pos=0); state.leftDoor=false; state.rightDoor=false; state.leftLight=false; state.rightLight=false; goldenTrump.active=false; goldenTrump.timer=0; renderAnimList(); renderCamera(); log('Night started'); startBtn.disabled=true; tickInterval = setInterval(tick,1000); });
 
-    // check Charlie Kirk if in office (pos 5)
-    anims.forEach(a => {
-      if (a.pos >= 5) {
-        const doorClosed = (a.side === 'left') ? state.leftDoor : state.rightDoor;
-        const lightOn = (a.side === 'left') ? state.leftLight : state.rightLight;
-        let attackChance = 0.85;
-        if (doorClosed) attackChance -= 0.85;
-        if (lightOn) attackChance -= 0.4;
-        if (energy <= 0) {
-          log('Energy depleted! Systems failing...');
-          state.leftDoor = false; state.rightDoor = false;
-        }
-        if (!doorClosed && Math.random() < attackChance) {
-          endGame(false, `${a.label} got you!`, a.label);
-        }
-      }
-    });
-
-    if (energy <= 0) {
-      messageEl.textContent = 'WARNING: energy depleted';
-      messageEl.style.color = 'orange';
-    } else {
-      messageEl.textContent = '';
-    }
-
-    if (nightTime >= nightLength) {
-      endGame(true, 'You survived the night!');
-    }
-  }
-
-  // --- controls ---
-  document.getElementById('leftDoor').addEventListener('click', () => {
-    ensureAudioContext();
-    state.leftDoor = !state.leftDoor;
-    log(`Left door ${state.leftDoor ? 'CLOSED' : 'OPENED'}`);
-    renderCamera();
-    updateEnergy(-1.5);
-  });
-
-  document.getElementById('rightDoor').addEventListener('click', () => {
-    ensureAudioContext();
-    state.rightDoor = !state.rightDoor;
-    log(`Right door ${state.rightDoor ? 'CLOSED' : 'OPENED'}`);
-    renderCamera();
-    updateEnergy(-1.5);
-  });
-
-  document.getElementById('leftLight').addEventListener('click', () => {
-    ensureAudioContext();
-    state.leftLight = !state.leftLight;
-    log(`Left light ${state.leftLight ? 'ON' : 'OFF'}`);
-    renderCamera();
-    updateEnergy(-0.8);
-  });
-
-  document.getElementById('rightLight').addEventListener('click', () => {
-    ensureAudioContext();
-    state.rightLight = !state.rightLight;
-    log(`Right light ${state.rightLight ? 'ON' : 'OFF'}`);
-    renderCamera();
-    updateEnergy(-0.8);
-  });
-
-  document.getElementById('cams').addEventListener('click', (e) => {
-    const b = e.target.closest('button');
-    if (!b) return;
-    ensureAudioContext();
-    const cam = parseInt(b.dataset.cam);
-    currentCam = cam;
-    renderCamera();
-    updateEnergy(-0.5);
-    // clicking any camera after Golden Trump spawns sends him away
-    if (goldenTrump.active) {
-      goldenTrump.active = false;
-      goldenTrump.timer = 0;
-      log('You checked the cameras — Golden Trump has vanished. He was male.');
-      renderAnimList();
-      renderCamera();
-    }
-  });
-
-  startBtn.addEventListener('click', () => {
-    ensureAudioContext();
-    if (running) return;
-    energy = 100;
-    nightTime = 0;
-    running = true;
-    anims.forEach(a => a.pos = 0);
-    state.leftDoor = false; state.rightDoor = false;
-    state.leftLight = false; state.rightLight = false;
-    goldenTrump.active = false; goldenTrump.timer = 0;
-    renderAnimList();
-    renderCamera();
-    log('Night started');
-    startBtn.disabled = true;
-    tickInterval = setInterval(tick, 1000);
-  });
-
+  // Persisted stats UI
+  function updateGoldenCountDisplay(){ if(goldenCountEl) goldenCountEl.textContent = String(getGoldenCount()); }
   // initial render
-  renderAnimList();
-  renderCamera();
-  clockEl.textContent = `Night: ${nightTime} / ${nightLength}`;
-
-  // accessibility tip: resume audio when user taps screen anywhere (some browsers require)
-  document.body.addEventListener('click', ensureAudioContext, { once:true });
+  renderAnimList(); renderCamera(); clockEl.textContent = `Night: ${nightTime} / ${nightLength}`; updateGoldenCountDisplay(); document.body.addEventListener('click', ensureAudioContext,{ once:true });
 })();
 </script>
 </body>
