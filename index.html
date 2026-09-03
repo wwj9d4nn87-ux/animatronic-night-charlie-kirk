@@ -81,12 +81,12 @@
         <h3>Cameras</h3>
         <div id="cams">
           <button data-cam="0">Cam 0 (Security Office)</button>
-          <button data-cam="1">Cam 1 (Hall A)</button>
-          <button data-cam="2">Cam 2 (Hall B)</button>
-          <button data-cam="3">Cam 3 (Back Hall)</button>
-          <button data-cam="4">Cam 4 (South Hall)</button>
-          <button data-cam="5">Cam 5 (Lobby)</button>
-          <button data-cam="6">Cam 6 (Main Stage)</button>
+          <button data-cam="1">Cam 1 (Main Stage)</button>
+          <button data-cam="2">Cam 2 (Gift Shop)</button>
+          <button data-cam="3">Cam 3 (Parts & Service)</button>
+          <button data-cam="4">Cam 4 (Big Hall)</button>
+          <button data-cam="5">Cam 5 (Hallway)</button>
+          <button data-cam="6">Cam 6 (Lobby)</button>
         </div>
       </div>
     </section>
@@ -145,36 +145,7 @@
   let audioCtx = null;
   function ensureAudioContext() { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); if (audioCtx.state === 'suspended') audioCtx.resume(); return audioCtx; }
 
-  function playScreamAndBoom() {
-    try {
-      const ctx = ensureAudioContext();
-      const len = 1.2;
-      const sampleRate = ctx.sampleRate;
-      const buffer = ctx.createBuffer(1, Math.floor(len * sampleRate), sampleRate);
-      const data = buffer.getChannelData(0);
-      for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (sampleRate * 0.7));
-      const src = ctx.createBufferSource(); src.buffer = buffer;
-      const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.setValueAtTime(1200, ctx.currentTime); bp.Q.value = 1.0;
-      const sg = ctx.createGain(); sg.gain.setValueAtTime(0.0001, ctx.currentTime); sg.gain.linearRampToValueAtTime(0.9, ctx.currentTime + 0.12); sg.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + len);
-      src.connect(bp); bp.connect(sg); sg.connect(ctx.destination);
-      bp.frequency.linearRampToValueAtTime(2400, ctx.currentTime + 0.35);
-      bp.frequency.linearRampToValueAtTime(400, ctx.currentTime + 0.95);
-      src.start();
-      setTimeout(() => {
-        const osc = ctx.createOscillator();
-        const g = ctx.createGain();
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(80, ctx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(30, ctx.currentTime + 0.9);
-        g.gain.setValueAtTime(0.0001, ctx.currentTime);
-        g.gain.linearRampToValueAtTime(1.0, ctx.currentTime + 0.01);
-        g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 1.0);
-        const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.setValueAtTime(120, ctx.currentTime);
-        osc.connect(g); g.connect(lp); lp.connect(ctx.destination);
-        osc.start(); setTimeout(() => osc.stop(), 1000);
-      }, 650);
-    } catch (e) { /* ignore audio errors */ }
-  }
+  function playScreamAndBoom() { try { const ctx = ensureAudioContext(); const len = 1.2; const sampleRate = ctx.sampleRate; const buffer = ctx.createBuffer(1, Math.floor(len * sampleRate), sampleRate); const data = buffer.getChannelData(0); for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (sampleRate * 0.7)); const src = ctx.createBufferSource(); src.buffer = buffer; const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.setValueAtTime(1200, ctx.currentTime); bp.Q.value = 1.0; const sg = ctx.createGain(); sg.gain.setValueAtTime(0.0001, ctx.currentTime); sg.gain.linearRampToValueAtTime(0.9, ctx.currentTime + 0.12); sg.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + len); src.connect(bp); bp.connect(sg); sg.connect(ctx.destination); bp.frequency.linearRampToValueAtTime(2400, ctx.currentTime + 0.35); bp.frequency.linearRampToValueAtTime(400, ctx.currentTime + 0.95); src.start(); setTimeout(() => { const osc = ctx.createOscillator(); const g = ctx.createGain(); osc.type = 'sine'; osc.frequency.setValueAtTime(80, ctx.currentTime); osc.frequency.exponentialRampToValueAtTime(30, ctx.currentTime + 0.9); g.gain.setValueAtTime(0.0001, ctx.currentTime); g.gain.linearRampToValueAtTime(1.0, ctx.currentTime + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 1.0); const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.setValueAtTime(120, ctx.currentTime); osc.connect(g); g.connect(lp); lp.connect(ctx.destination); osc.start(); setTimeout(() => osc.stop(), 1000); }, 650); } catch (e) { /* ignore audio errors */ } }
 
   // --- game state ---
   let energy = 100;
@@ -186,20 +157,23 @@
 
   const cams = [
     { id:0, name:"Security Office (FNAF3-style)", posView: 6 },
-    { id:1, name:"Hall A", posView: 1 },
-    { id:2, name:"Hall B", posView: 2 },
-    { id:3, name:"Back Hall", posView: 3 },
-    { id:4, name:"South Hall", posView: 4 },
-    { id:5, name:"Lobby", posView: 5 },
-    { id:6, name:"Main Stage (FNAF2-style)", posView: 0 }
+    { id:1, name:"Main Stage", posView: 1 },
+    { id:2, name:"Gift Shop", posView: 2 },
+    { id:3, name:"Parts & Service", posView: 3 },
+    { id:4, name:"Big Hall", posView: 4 },
+    { id:5, name:"Hallway", posView: 5 },
+    { id:6, name:"Lobby", posView: 0 }
   ];
 
-  const OFFICE_POS = 6; // office is pos 6 (attacks here)
+  const OFFICE_POS = 6; // where the security office is (where attacks happen)
   const LEFT_HALL_POS = 1; // left hall
   const RIGHT_HALL_POS = 4; // right hall
+  const PARTS_POS = 3; // parts & service
+  const GIFT_POS = 2; // gift shop
   const MAX_POS = OFFICE_POS;
 
-  const anims = [ { id: 'CK', label: 'Charlie Kirk', pos: 0, aggressiveness: 0.12, emoji: '🎭', side: 'left' } ];
+  // Charlie Kirk — single animatronic. Add `stayTimer` property for parts-room behavior
+  const anims = [ { id: 'CK', label: 'Charlie Kirk', pos: 0, aggressiveness: 0.12, emoji: '🎭', side: 'left', stayTimer: 0 } ];
 
   const goldenTrump = { active:false, pos: Math.floor(MAX_POS/2), timer:0, spawnDenominator: 726279 };
 
@@ -214,7 +188,7 @@
   // helpers
   function updateEnergy(delta){ energy=Math.max(0,Math.min(100,energy+delta)); energyEl.textContent=Math.round(energy); }
   function log(msg){ const t=new Date().toLocaleTimeString(); logEl.innerHTML=`<div>[${t}] ${msg}</div>`+logEl.innerHTML; }
-  function renderAnimList(){ animList.innerHTML=''; anims.forEach(a=>{ const li=document.createElement('li'); li.textContent=`${a.label} (pos ${a.pos})`; animList.appendChild(li); }); if(goldenTrump.active){ const li=document.createElement('li'); li.textContent=`!!! Golden Trump is present (pos ${goldenTrump.pos}) — he is sitting`; li.style.color='#ffd54f'; li.style.fontWeight='800'; animList.insertBefore(li,animList.firstChild);} }
+  function renderAnimList(){ animList.innerHTML=''; anims.forEach(a=>{ const li=document.createElement('li'); li.textContent=`${a.label} (pos ${a.pos}${a.stayTimer? ' — waiting '+a.stayTimer+'s':''})`; animList.appendChild(li); }); if(goldenTrump.active){ const li=document.createElement('li'); li.textContent=`!!! Golden Trump is present (pos ${goldenTrump.pos}) — he is sitting`; li.style.color='#ffd54f'; li.style.fontWeight='800'; animList.insertBefore(li,animList.firstChild);} }
 
   // Pan state for office view
   let panOffset = 0; // pixels, 0 = center panel
@@ -224,9 +198,7 @@
   function clamp(x, a, b){ return Math.max(a, Math.min(b, x)); }
 
   function getFocusedPanelFromOffset(offset, viewWidth) {
-    // Decide focused panel index 0=left,1=center,2=right based on offset percentage
     const pct = (offset / (viewWidth || 900));
-    // thresholds roughly -0.2 and 0.2
     if (pct < -0.18) return 0;
     if (pct > 0.18) return 2;
     return 1;
@@ -250,72 +222,48 @@
   }
 
   function enablePanHandlers(viewEl) {
-    // remove previous handlers by cloning node so we have a fresh element
     const newView = viewEl.cloneNode(true);
     viewEl.parentNode.replaceChild(newView, viewEl);
     const v = newView;
     if (!v) return;
     v.style.touchAction = 'none';
 
-    v.addEventListener('pointerdown', e => {
-      isPanning = true; panStartX = e.clientX; panStartOffset = panOffset; v.setPointerCapture && v.setPointerCapture(e.pointerId);
-    });
-    v.addEventListener('pointermove', e => {
-      if (!isPanning) return;
-      const dx = e.clientX - panStartX;
-      panOffset = clamp(panStartOffset + dx, -panLimit, panLimit);
-      const panorama = v.querySelector('.panorama');
-      if (panorama) panorama.style.transform = `translateX(${ -100/3 - (panOffset / v.clientWidth) * 100 }%)`;
-      updatePanelFocusUI(v);
-    });
-    ['pointerup','pointercancel','pointerleave'].forEach(evt => {
-      v.addEventListener(evt, e => { if (!isPanning) return; isPanning = false; v.releasePointerCapture && v.releasePointerCapture(e.pointerId); updatePanelFocusUI(v); });
-    });
+    v.addEventListener('pointerdown', e => { isPanning = true; panStartX = e.clientX; panStartOffset = panOffset; v.setPointerCapture && v.setPointerCapture(e.pointerId); });
+    v.addEventListener('pointermove', e => { if (!isPanning) return; const dx = e.clientX - panStartX; panOffset = clamp(panStartOffset + dx, -panLimit, panLimit); const panorama = v.querySelector('.panorama'); if (panorama) panorama.style.transform = `translateX(${ -100/3 - (panOffset / v.clientWidth) * 100 }%)`; updatePanelFocusUI(v); });
+    ['pointerup','pointercancel','pointerleave'].forEach(evt => { v.addEventListener(evt, e => { if (!isPanning) return; isPanning = false; v.releasePointerCapture && v.releasePointerCapture(e.pointerId); updatePanelFocusUI(v); }); });
 
-    // also allow click/tap to quickly center left/right
-    v.addEventListener('click', e => {
-      // ignore click if it was part of a drag
-      if (Math.abs(panStartX - e.clientX) > 8) return;
-      const rect = v.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      if (x < rect.width/3) panOffset = -panLimit;
-      else if (x > rect.width*2/3) panOffset = panLimit;
-      else panOffset = 0;
-      const panorama = v.querySelector('.panorama');
-      if (panorama) panorama.style.transform = `translateX(${ -100/3 - (panOffset / v.clientWidth) * 100 }%)`;
-      updatePanelFocusUI(v);
-    });
+    v.addEventListener('click', e => { if (Math.abs(panStartX - e.clientX) > 8) return; const rect = v.getBoundingClientRect(); const x = e.clientX - rect.left; if (x < rect.width/3) panOffset = -panLimit; else if (x > rect.width*2/3) panOffset = panLimit; else panOffset = 0; const panorama = v.querySelector('.panorama'); if (panorama) panorama.style.transform = `translateX(${ -100/3 - (panOffset / v.clientWidth) * 100 }%)`; updatePanelFocusUI(v); });
 
-    // initialize focus UI
     updatePanelFocusUI(v);
 
-    // attach quick-tap controls for door/light directly on the panel buttons
     const btns = v.querySelectorAll('.control-btn');
     btns.forEach(btnWrap => {
       const doorBtn = btnWrap.querySelector('button[data-action="door"]');
       const lightBtn = btnWrap.querySelector('button[data-action="light"]');
-      const side = btnWrap.dataset.side; // 'left' or 'right' or 'center'
+      const side = btnWrap.dataset.side;
       if (doorBtn) {
-        doorBtn.addEventListener('click', (ev) => {
-          ev.stopPropagation();
-          if (side === 'left') state.leftDoor = !state.leftDoor;
-          else if (side === 'right') state.rightDoor = !state.rightDoor;
-          else { state.leftDoor = !state.leftDoor; state.rightDoor = !state.rightDoor; }
-          log(`${side} door ${ (side==='left'? state.leftDoor : state.rightDoor) ? 'CLOSED' : 'OPEN' }`);
-          renderAnimList(); renderCamera(); updateEnergy(-0.8);
-        });
+        doorBtn.addEventListener('click', (ev) => { ev.stopPropagation(); if (side === 'left') state.leftDoor = !state.leftDoor; else if (side === 'right') state.rightDoor = !state.rightDoor; else { state.leftDoor = !state.leftDoor; state.rightDoor = !state.rightDoor; } log(`${side} door ${ (side==='left'? state.leftDoor : state.rightDoor) ? 'CLOSED' : 'OPEN' }`); renderAnimList(); renderCamera(); updateEnergy(-0.8); });
       }
       if (lightBtn) {
-        lightBtn.addEventListener('click', (ev) => {
-          ev.stopPropagation();
-          if (side === 'left') state.leftLight = !state.leftLight;
-          else if (side === 'right') state.rightLight = !state.rightLight;
-          else { state.leftLight = !state.leftLight; state.rightLight = !state.rightLight; }
-          log(`${side} light ${ (side==='left'? state.leftLight : state.rightLight) ? 'ON' : 'OFF' }`);
-          renderAnimList(); renderCamera(); updateEnergy(-0.6);
-        });
+        lightBtn.addEventListener('click', (ev) => { ev.stopPropagation(); if (side === 'left') state.leftLight = !state.leftLight; else if (side === 'right') state.rightLight = !state.rightLight; else { state.leftLight = !state.leftLight; state.rightLight = !state.rightLight; } log(`${side} light ${ (side==='left'? state.leftLight : state.rightLight) ? 'ON' : 'OFF' }`); renderAnimList(); renderCamera(); updateEnergy(-0.6); });
       }
     });
+  }
+
+  // create simple inline SVG backgrounds per camera so users see a different picture per cam
+  function camBackgroundDataUrl(camId) {
+    const scenes = {
+      1: { title: 'Main Stage', colorA: '#2b1055', colorB:'#7b2ea8' },
+      2: { title: 'Gift Shop', colorA:'#004d40', colorB:'#00796b' },
+      3: { title: 'Parts & Service', colorA:'#263238', colorB:'#455a64' },
+      4: { title: 'Big Hall', colorA:'#1a237e', colorB:'#3949ab' },
+      5: { title: 'Hallway', colorA:'#212121', colorB:'#424242' },
+      6: { title: 'Lobby', colorA:'#3e2723', colorB:'#6d4c41' },
+      0: { title: 'Office', colorA:'#000000', colorB:'#111111' }
+    };
+    const s = scenes[camId] || scenes[0];
+    const svg = `<?xml version="1.0" encoding="UTF-8"?><svg xmlns='http://www.w3.org/2000/svg' width='1200' height='720'><defs><linearGradient id='g' x1='0' y1='0' x2='0' y2='1'><stop offset='0' stop-color='${s.colorA}'/><stop offset='1' stop-color='${s.colorB}'/></linearGradient></defs><rect width='100%' height='100%' fill='url(%23g)' /><g fill='white' fill-opacity='0.06'><rect x='60' y='120' width='220' height='360' rx='8'/><rect x='320' y='120' width='220' height='360' rx='8'/><rect x='580' y='120' width='220' height='360' rx='8'/></g><text x='50%' y='10%' font-size='36' fill='white' fill-opacity='0.9' text-anchor='middle' font-family='Arial' font-weight='700'>${s.title}</text></svg>`;
+    return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
   }
 
   // Render camera with picture layout; office view uses panorama + pan handlers
@@ -370,11 +318,8 @@
 
         // Add control buttons overlay near the door for left/right panels
         const controlWrap = document.createElement('div'); controlWrap.className = 'control-btn'; controlWrap.dataset.side = (i===0? 'left' : i===2? 'right' : 'center');
-        // door button
         const doorBtn = document.createElement('button'); doorBtn.className = 'door'; doorBtn.dataset.action = 'door'; doorBtn.textContent = (i===0? (state.leftDoor? 'Door CLOSED' : 'Door OPEN') : i===2? (state.rightDoor? 'Door CLOSED' : 'Door OPEN') : 'Doors');
-        // light button
         const lightBtn = document.createElement('button'); lightBtn.className = 'light'; lightBtn.dataset.action = 'light'; lightBtn.textContent = (i===0? (state.leftLight? 'Light ON' : 'Light OFF') : i===2? (state.rightLight? 'Light ON' : 'Light OFF') : 'Lights');
-        // default dim style: center panel dimmed unless focused
         doorBtn.classList.add('dim'); lightBtn.classList.add('dim');
         controlWrap.appendChild(doorBtn); controlWrap.appendChild(lightBtn);
         panel.appendChild(controlWrap);
@@ -390,26 +335,76 @@
       return;
     }
 
-    // non-office cameras: simple static view with anims if present
+    // non-office cameras: set a scenic background so each camera looks like a picture
+    const camId = currentCam;
+    view.style.backgroundImage = `url('${camBackgroundDataUrl(camId)}')`;
+    view.style.backgroundSize = 'cover';
+    view.style.backgroundPosition = 'center';
+
     const viewPos = cams[currentCam].posView; const hereAnims = anims.filter(a => a.pos === viewPos);
     if (hereAnims.length > 0) { hereAnims.forEach((a, idx) => { const el = document.createElement('div'); el.style.position='absolute'; el.style.fontSize='48px'; el.style.bottom=(10+idx*80)+'px'; el.style.left='50%'; el.style.transform='translateX(-50%)'; el.textContent=a.emoji; el.title=a.label; view.appendChild(el); }); }
     if (goldenTrump.active && goldenTrump.pos === viewPos) { const g = document.createElement('div'); g.className = 'golden sitting'; g.style.position='absolute'; g.style.left='50%'; g.style.top='28%'; g.style.transform='translateX(-50%)'; g.textContent='🟡T'; view.appendChild(g); }
-    if (hereAnims.length === 0 && !(goldenTrump.active && goldenTrump.pos === viewPos)) { const empty = document.createElement('div'); empty.style.color='#8a8a8a'; empty.style.textAlign='center'; empty.style.fontSize='18px'; empty.textContent = 'No animatronics on this camera'; view.appendChild(empty); }
+    if (hereAnims.length === 0 && !(goldenTrump.active && goldenTrump.pos === viewPos)) { /* leave the scenic background visible */ }
 
-    // props for lobby/office style cameras
-    if (viewPos === 5) { const door = document.createElement('div'); door.className = 'prop ' + (state.leftDoor||state.rightDoor ? 'door-closed' : ''); door.style.left='12px'; door.style.top='12px'; door.textContent = `Doors: ${state.leftDoor||state.rightDoor ? 'CLOSED' : 'OPEN'}`; view.appendChild(door); const light = document.createElement('div'); light.className = 'prop ' + (state.leftLight||state.rightLight ? 'light-on' : ''); light.style.right='12px'; light.style.top='12px'; light.textContent = `Lights: ${state.leftLight||state.rightLight ? 'ON' : 'OFF'}`; view.appendChild(light); }
+    // extra label for parts & service to indicate special behavior
+    if (camId === 3) {
+      const badge = document.createElement('div'); badge.className = 'prop'; badge.style.right='12px'; badge.style.top='12px'; badge.textContent = 'Parts & Service — anim may stay here'; badge.style.background='rgba(0,0,0,0.35)'; cameraView.appendChild(badge);
+    }
 
     live.appendChild(label); live.appendChild(view); picture.appendChild(map); picture.appendChild(live); cameraView.appendChild(picture);
   }
 
-  // attempt golden spawn
-  function trySpawnGolden(){ if(goldenTrump.active) return; if (Math.floor(Math.random()*goldenTrump.spawnDenominator)===0){ goldenTrump.active=true; goldenTrump.timer=8; incrementGoldenCount(); log('A cold hush falls over the building... A rare presence has appeared.'); renderAnimList(); renderCamera(); } }
+  // movement logic with parts & service special-case: sometimes skip parts, sometimes enter and stay
+  function tick(){
+    if(!running) return;
+    nightTime++; clockEl.textContent = `Night: ${nightTime} / ${nightLength}`;
+    trySpawnGolden();
 
-  function showJumpscare(victimLabel){ jumpscareTitle.textContent=victimLabel; jumpscareSub.textContent='YOU DIED'; jumpscare.classList.add('show'); setTimeout(()=>{ jumpscare.querySelector('.image').style.background='#220000'; jumpscareTitle.style.color='#ffdddd'; },40); try{ playScreamAndBoom(); }catch(e){} setTimeout(()=>{ jumpscare.classList.remove('show'); },2200); }
+    anims.forEach(a => {
+      // if anim is waiting in parts room, decrement stayTimer
+      if (a.stayTimer && a.stayTimer > 0) {
+        a.stayTimer = Math.max(0, a.stayTimer - 1);
+        if (a.stayTimer === 0) log(`${a.label} leaves Parts & Service after waiting.`);
+        return; // while waiting, do not advance
+      }
 
-  function endGame(won, reason, killerLabel){ running=false; clearInterval(tickInterval); messageEl.textContent=reason; messageEl.style.color=won? 'lime':'red'; log(reason + (won? ' — WIN' : ' — GAME OVER')); startBtn.disabled=false; if(!won) showJumpscare(killerLabel||'JUMPSCARE'); }
+      if (a.pos >= OFFICE_POS) return;
+      const base = a.aggressiveness + (nightTime/nightLength)*0.22;
+      let penalty = 0;
+      if (a.pos >= OFFICE_POS-2){ if ((a.side==='left'&&state.leftDoor) || (a.side==='right'&&state.rightDoor)) penalty += 0.6; if ((a.side==='left'&&state.leftLight)||(a.side==='right'&&state.rightLight)) penalty += 0.4; }
+      let chance = Math.max(0, base - penalty);
 
-  function tick(){ if(!running) return; nightTime++; clockEl.textContent = `Night: ${nightTime} / ${nightLength}`; trySpawnGolden(); anims.forEach(a=>{ if(a.pos>=OFFICE_POS) return; const base = a.aggressiveness + (nightTime/nightLength)*0.22; let penalty=0; if (a.pos>=OFFICE_POS-2){ if ((a.side==='left'&&state.leftDoor) || (a.side==='right'&&state.rightDoor)) penalty+=0.6; if ((a.side==='left'&&state.leftLight)||(a.side==='right'&&state.rightLight)) penalty+=0.4; } const chance=Math.max(0,base-penalty); if(Math.random()<chance){ a.pos=Math.min(OFFICE_POS,a.pos+1); log(`${a.label} moves to pos ${a.pos}`); } }); if(goldenTrump.active){ goldenTrump.timer=Math.max(0,goldenTrump.timer-1); if(goldenTrump.timer<=0){ endGame(false,'Golden Trump appeared and attacked!','Golden Trump'); return; } } applyCameraEnergy(); applyDoorsLightsEnergy(); renderAnimList(); renderCamera(); anims.forEach(a=>{ if(a.pos>=OFFICE_POS){ const doorClosed=(a.side==='left')? state.leftDoor : state.rightDoor; const lightOn=(a.side==='left')? state.leftLight : state.rightLight; let attackChance=0.85; if(doorClosed) attackChance-=0.85; if(lightOn) attackChance-=0.4; if(energy<=0){ log('Energy depleted! Systems failing...'); state.leftDoor=false; state.rightDoor=false; } if(!doorClosed && Math.random()<attackChance){ endGame(false,`${a.label} got you!`,a.label); } } }); if(energy<=0){ messageEl.textContent='WARNING: energy depleted'; messageEl.style.color='orange'; } else messageEl.textContent=''; if(nightTime>=nightLength) endGame(true,'You survived the night!'); }
+      // decide movement
+      if (Math.random() < chance) {
+        // special handling for when next position would be PARTS_POS
+        const nextPos = a.pos + 1;
+        if (nextPos === PARTS_POS) {
+          // 50% chance to enter parts & service and then stay; otherwise skip to the next hall (advance 2)
+          if (Math.random() < 0.5) {
+            a.pos = PARTS_POS;
+            a.stayTimer = 10 + Math.floor(Math.random() * 11); // stays 10-20s
+            log(`${a.label} moved into Parts & Service and is lingering for ${a.stayTimer}s.`);
+          } else {
+            a.pos = Math.min(OFFICE_POS, a.pos + 2);
+            log(`${a.label} skipped Parts & Service and moved to pos ${a.pos}`);
+          }
+        } else {
+          a.pos = Math.min(OFFICE_POS, a.pos + 1);
+          log(`${a.label} moves to pos ${a.pos}`);
+        }
+      }
+    });
+
+    if(goldenTrump.active){ goldenTrump.timer=Math.max(0,goldenTrump.timer-1); if(goldenTrump.timer<=0){ endGame(false,'Golden Trump appeared and attacked!','Golden Trump'); return; } }
+
+    applyCameraEnergy(); applyDoorsLightsEnergy(); renderAnimList(); renderCamera();
+
+    // check Charlie Kirk if in office (pos OFFICE_POS)
+    anims.forEach(a=>{ if(a.pos>=OFFICE_POS){ const doorClosed=(a.side==='left')? state.leftDoor : state.rightDoor; const lightOn=(a.side==='left')? state.leftLight : state.rightLight; let attackChance=0.85; if(doorClosed) attackChance-=0.85; if(lightOn) attackChance-=0.4; if(energy<=0){ log('Energy depleted! Systems failing...'); state.leftDoor=false; state.rightDoor=false; } if(!doorClosed && Math.random()<attackChance){ endGame(false,`${a.label} got you!`,a.label); } } });
+
+    if(energy<=0){ messageEl.textContent='WARNING: energy depleted'; messageEl.style.color='orange'; } else messageEl.textContent='';
+    if(nightTime>=nightLength) endGame(true,'You survived the night!');
+  }
 
   function applyCameraEnergy(){ updateEnergy(-0.7); }
   function applyDoorsLightsEnergy(){ let drain=0; if(state.leftDoor) drain+=0.8; if(state.rightDoor) drain+=0.8; if(state.leftLight) drain+=0.5; if(state.rightLight) drain+=0.5; updateEnergy(-drain); }
@@ -422,7 +417,7 @@
 
   document.getElementById('cams').addEventListener('click',(e)=>{ const b=e.target.closest('button'); if(!b) return; ensureAudioContext(); const cam=parseInt(b.dataset.cam); currentCam=cam; renderCamera(); updateEnergy(-0.5); if(goldenTrump.active){ goldenTrump.active=false; goldenTrump.timer=0; log('You checked the cameras — Golden Trump has vanished. He was male.'); renderAnimList(); renderCamera(); } });
 
-  startBtn.addEventListener('click',()=>{ ensureAudioContext(); if(running) return; energy=100; nightTime=0; running=true; anims.forEach(a=>a.pos=0); state.leftDoor=false; state.rightDoor=false; state.leftLight=false; state.rightLight=false; goldenTrump.active=false; goldenTrump.timer=0; renderAnimList(); renderCamera(); log('Night started'); startBtn.disabled=true; tickInterval=setInterval(tick,1000); });
+  startBtn.addEventListener('click',()=>{ ensureAudioContext(); if(running) return; energy=100; nightTime=0; running=true; anims.forEach(a=>{ a.pos=0; a.stayTimer=0; }); state.leftDoor=false; state.rightDoor=false; state.leftLight=false; state.rightLight=false; goldenTrump.active=false; goldenTrump.timer=0; renderAnimList(); renderCamera(); log('Night started'); startBtn.disabled=true; tickInterval=setInterval(tick,1000); });
 
   // initial render
   renderAnimList(); renderCamera(); clockEl.textContent = `Night: ${nightTime} / ${nightLength}`; updateGoldenCountDisplay(); document.body.addEventListener('click', ensureAudioContext,{ once:true });
