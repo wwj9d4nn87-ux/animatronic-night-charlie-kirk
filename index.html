@@ -29,13 +29,18 @@
 
   /* camera picture layout */
   .picture { width:96%; height:86%; display:flex; gap:12px; align-items:stretch; }
-  .map { width:36%; background:#050608; border-radius:6px; padding:10px; border:1px solid rgba(255,255,255,0.03); }
+  .map { width:36%; background:#050608; border-radius:6px; padding:10px; border:1px solid rgba(255,255,255,0.03); overflow:auto; }
   .map .pos { height:44px; margin:6px 0; border-radius:6px; display:flex; align-items:center; padding:6px; justify-content:space-between; background:rgba(255,255,255,0.02); color:#ccc; font-size:13px; }
   .map .pos.current { outline:2px solid rgba(100,200,255,0.12); background:rgba(100,200,255,0.02); }
-  .live { flex:1; background:linear-gradient(180deg,#060607,#020203); border-radius:6px; padding:12px; display:flex; flex-direction:column; align-items:center; justify-content:center; border:1px solid rgba(255,255,255,0.03); }
+  .live { flex:1; background:linear-gradient(180deg,#060607,#020203); border-radius:6px; padding:12px; display:flex; flex-direction:column; align-items:center; justify-content:center; border:1px solid rgba(255,255,255,0.03); position:relative; }
   .live .room-label { font-weight:800; margin-bottom:8px; color:#e7e7e7; }
-  .live .view { width:88%; height:68%; border-radius:6px; background:linear-gradient(180deg,#0a0a0b,#020203); display:flex; align-items:center; justify-content:center; position:relative; border:1px solid rgba(255,255,255,0.02); }
-  .prop { position:absolute; font-size:12px; color:#bdbdbd; background:rgba(0,0,0,0.25); padding:4px 6px; border-radius:4px; }
+  .live .view { width:100%; height:100%; border-radius:6px; background:linear-gradient(180deg,#0a0a0b,#020203); display:flex; align-items:center; justify-content:center; position:relative; border:1px solid rgba(255,255,255,0.02); overflow:hidden; touch-action:none; }
+
+  /* panorama inside office view */
+  .panorama { display:flex; width:300%; height:100%; transition: transform 0.12s ease-out; }
+  .panel { flex:0 0 33.3333%; position:relative; display:flex; align-items:center; justify-content:center; }
+  .panel .prop { position:absolute; font-size:12px; color:#bdbdbd; background:rgba(0,0,0,0.25); padding:4px 6px; border-radius:4px; }
+
   .door-closed { background:rgba(200,0,0,0.9); color:#111; }
   .light-on { background:rgba(255,240,120,0.9); color:#111; }
   .cam-thumb { display:flex; gap:8px; align-items:center; }
@@ -129,34 +134,13 @@
   const jumpscareSub = document.getElementById('jumpscareSub');
   const goldenCountEl = document.getElementById('goldenCount');
 
-  // audio context (on demand)
+  // audio context
   let audioCtx = null;
-  function ensureAudioContext() { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); if (audioCtx.state === 'suspended') audioCtx.resume(); return audioCtx; }
+  function ensureAudioContext(){ if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); if (audioCtx.state === 'suspended') audioCtx.resume(); return audioCtx; }
+  function playScreamAndBoom(){ try{ const ctx = ensureAudioContext(); const len = 1.2; const sampleRate = ctx.sampleRate; const buffer = ctx.createBuffer(1, Math.floor(len * sampleRate), sampleRate); const data = buffer.getChannelData(0); for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (sampleRate * 0.7)); const src = ctx.createBufferSource(); src.buffer = buffer; const bp = ctx.createBiquadFilter(); bp.type='bandpass'; bp.frequency.setValueAtTime(1200, ctx.currentTime); bp.Q.value = 1.0; const sg = ctx.createGain(); sg.gain.setValueAtTime(0.0001, ctx.currentTime); sg.gain.linearRampToValueAtTime(0.9, ctx.currentTime + 0.12); sg.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + len); src.connect(bp); bp.connect(sg); sg.connect(ctx.destination); bp.frequency.linearRampToValueAtTime(2400, ctx.currentTime + 0.35); bp.frequency.linearRampToValueAtTime(400, ctx.currentTime + 0.95); src.start(); setTimeout(()=>{ const osc = ctx.createOscillator(); const g = ctx.createGain(); osc.type='sine'; osc.frequency.setValueAtTime(80, ctx.currentTime); osc.frequency.exponentialRampToValueAtTime(30, ctx.currentTime + 0.9); g.gain.setValueAtTime(0.0001, ctx.currentTime); g.gain.linearRampToValueAtTime(1.0, ctx.currentTime + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 1.0); const lp = ctx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.setValueAtTime(120, ctx.currentTime); osc.connect(g); g.connect(lp); lp.connect(ctx.destination); osc.start(); setTimeout(()=>osc.stop(),1000); },650); }catch(e){} }
 
-  function playScreamAndBoom() {
-    try {
-      const ctx = ensureAudioContext();
-      const len = 1.2;
-      const sampleRate = ctx.sampleRate;
-      const buffer = ctx.createBuffer(1, Math.floor(len * sampleRate), sampleRate);
-      const data = buffer.getChannelData(0);
-      for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (sampleRate * 0.7));
-      const src = ctx.createBufferSource(); src.buffer = buffer;
-      const bp = ctx.createBiquadFilter(); bp.type='bandpass'; bp.frequency.setValueAtTime(1200, ctx.currentTime); bp.Q.value = 1.0;
-      const sg = ctx.createGain(); sg.gain.setValueAtTime(0.0001, ctx.currentTime); sg.gain.linearRampToValueAtTime(0.9, ctx.currentTime + 0.12); sg.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + len);
-      src.connect(bp); bp.connect(sg); sg.connect(ctx.destination);
-      bp.frequency.linearRampToValueAtTime(2400, ctx.currentTime + 0.35); bp.frequency.linearRampToValueAtTime(400, ctx.currentTime + 0.95); src.start();
-      setTimeout(()=>{ const osc = ctx.createOscillator(); const g = ctx.createGain(); osc.type='sine'; osc.frequency.setValueAtTime(80, ctx.currentTime); osc.frequency.exponentialRampToValueAtTime(30, ctx.currentTime + 0.9); g.gain.setValueAtTime(0.0001, ctx.currentTime); g.gain.linearRampToValueAtTime(1.0, ctx.currentTime + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 1.0); const lp = ctx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.setValueAtTime(120, ctx.currentTime); osc.connect(g); g.connect(lp); lp.connect(ctx.destination); osc.start(); setTimeout(()=>osc.stop(),1000); }, 650);
-    } catch(e) { /* ignore audio errors */ }
-  }
-
-  // --- game state ---
-  let energy = 100;
-  let nightTime = 0;
-  const nightLength = 60; // seconds to survive
-  let running = false;
-  let tickInterval = null;
-  let currentCam = 0;
+  // game state
+  let energy = 100; let nightTime = 0; const nightLength = 60; let running = false; let tickInterval = null; let currentCam = 0;
 
   const cams = [
     { id:0, name:"Security Office (FNAF3-style)", posView: 6 },
@@ -168,11 +152,8 @@
     { id:6, name:"Main Stage (FNAF2-style)", posView: 0 }
   ];
 
-  const OFFICE_POS = 6; // office is pos 6 (attacks here)
-  const MAX_POS = OFFICE_POS;
-
+  const OFFICE_POS = 6; const MAX_POS = OFFICE_POS;
   const anims = [ { id: 'CK', label: 'Charlie Kirk', pos: 0, aggressiveness: 0.12, emoji: '🎭', side: 'left' } ];
-
   const goldenTrump = { active:false, pos: Math.floor(MAX_POS/2), timer:0, spawnDenominator: 726279 };
   const state = { leftDoor:false, rightDoor:false, leftLight:false, rightLight:false };
 
@@ -182,84 +163,107 @@
   function incrementGoldenCount(){ const n=getGoldenCount()+1; setGoldenCount(n); log(`Golden Trump total spawns (persisted): ${n}`); }
   function updateGoldenCountDisplay(){ if(goldenCountEl) goldenCountEl.textContent = String(getGoldenCount()); }
 
-  // helpers
   function updateEnergy(delta){ energy=Math.max(0,Math.min(100,energy+delta)); energyEl.textContent=Math.round(energy); }
   function log(msg){ const t=new Date().toLocaleTimeString(); logEl.innerHTML=`<div>[${t}] ${msg}</div>`+logEl.innerHTML; }
   function renderAnimList(){ animList.innerHTML=''; anims.forEach(a=>{ const li=document.createElement('li'); li.textContent=`${a.label} (pos ${a.pos})`; animList.appendChild(li); }); if(goldenTrump.active){ const li=document.createElement('li'); li.textContent=`!!! Golden Trump is present (pos ${goldenTrump.pos}) — he is sitting`; li.style.color='#ffd54f'; li.style.fontWeight='800'; animList.insertBefore(li,animList.firstChild);} }
 
-  // Render camera with a clear "picture" of what that camera sees
-  function renderCamera(){
-    cameraView.innerHTML='';
-    cameraTitle.textContent = `Camera: ${cams[currentCam].name} (${currentCam})`;
+  // Pan state for office view
+  let panOffset = 0; // pixels, 0 = center panel
+  const panLimit = 240; // maximum pixels left/right
+  let isPanning = false; let panStartX = 0; let panStartOffset = 0;
 
-    const picture = document.createElement('div'); picture.className='picture';
+  function clamp(x, a, b){ return Math.max(a, Math.min(b, x)); }
 
-    // Left: map/positions list
-    const map = document.createElement('div'); map.className='map';
-    const positions = [0,1,2,3,4,5,6];
-    positions.forEach(p=>{
-      const div = document.createElement('div'); div.className='pos';
-      if (p === cams[currentCam].posView) div.classList.add('current');
-      div.innerHTML = `<span>Pos ${p}</span><span class="cam-thumb">`;
-      // show small dot if anims present
-      const present = anims.filter(a=>a.pos===p);
-      const dotWrap = document.createElement('span'); dotWrap.className='cam-thumb';
-      const dot = document.createElement('span'); dot.className='dot';
-      dot.textContent = present.length ? present[0].emoji : '';
-      dotWrap.appendChild(dot);
-      const right = document.createElement('span');
-      right.appendChild(dotWrap);
-      div.appendChild(right);
-      map.appendChild(div);
+  function enablePanHandlers(viewEl) {
+    // remove previous handlers by cloning
+    viewEl.replaceWith(viewEl.cloneNode(true));
+    const v = document.querySelector('.view');
+    if (!v) return;
+    v.style.touchAction = 'none';
+
+    v.addEventListener('pointerdown', e => {
+      isPanning = true; panStartX = e.clientX; panStartOffset = panOffset; v.setPointerCapture(e.pointerId);
+    });
+    v.addEventListener('pointermove', e => {
+      if (!isPanning) return;
+      const dx = e.clientX - panStartX;
+      panOffset = clamp(panStartOffset + dx, -panLimit, panLimit);
+      const panorama = v.querySelector('.panorama');
+      if (panorama) panorama.style.transform = `translateX(${ -100/3 - (panOffset / v.clientWidth) * 100 }%)`;
+    });
+    ['pointerup','pointercancel','pointerleave'].forEach(evt => {
+      v.addEventListener(evt, e => { if (!isPanning) return; isPanning = false; v.releasePointerCapture && v.releasePointerCapture(e.pointerId); });
     });
 
-    // Right / main live view
-    const live = document.createElement('div'); live.className='live';
-    const label = document.createElement('div'); label.className='room-label'; label.textContent = cams[currentCam].name;
-    const view = document.createElement('div'); view.className='view';
-
-    // show props depending on camera
-    // door/light indicators for office/lobby
-    if (cams[currentCam].posView === OFFICE_POS) {
-      const door = document.createElement('div'); door.className='prop ' + (state.leftDoor || state.rightDoor ? 'door-closed' : '');
-      door.style.left = '12px'; door.style.top='12px'; door.textContent = `Doors: ${state.leftDoor||state.rightDoor ? 'CLOSED' : 'OPEN'}`;
-      view.appendChild(door);
-      const light = document.createElement('div'); light.className='prop ' + (state.leftLight||state.rightLight ? 'light-on' : '');
-      light.style.right='12px'; light.style.top='12px'; light.textContent = `Lights: ${state.leftLight||state.rightLight ? 'ON' : 'OFF'}`;
-      view.appendChild(light);
-    }
-
-    // show anims that are actually in this camera's view (posView)
-    const viewPos = cams[currentCam].posView;
-    const hereAnims = anims.filter(a => a.pos === viewPos);
-    hereAnims.forEach((a, idx) => {
-      const el = document.createElement('div'); el.style.position='absolute'; el.style.fontSize='48px'; el.style.bottom = (10 + idx*80) + 'px'; el.style.left='50%'; el.style.transform='translateX(-50%)'; el.textContent = a.emoji; el.title = a.label; view.appendChild(el);
+    // also allow click/tap to quickly center left/right
+    v.addEventListener('click', e => {
+      // ignore click if it was part of a drag
+      if (Math.abs(panStartX - e.clientX) > 8) return;
+      const rect = v.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      if (x < rect.width/3) panOffset = -panLimit;
+      else if (x > rect.width*2/3) panOffset = panLimit;
+      else panOffset = 0;
+      const panorama = v.querySelector('.panorama');
+      if (panorama) panorama.style.transform = `translateX(${ -100/3 - (panOffset / v.clientWidth) * 100 }%)`;
     });
-
-    // golden visual if present at viewPos
-    if (goldenTrump.active && goldenTrump.pos === viewPos) {
-      const g = document.createElement('div'); g.className='golden sitting'; g.style.position='absolute'; g.style.left='50%'; g.style.top='28%'; g.style.transform='translateX(-50%)'; g.textContent='🟡T'; view.appendChild(g);
-    }
-
-    // if nothing in view, show static picture label
-    if (hereAnims.length === 0 && !(goldenTrump.active && goldenTrump.pos === viewPos)) {
-      const empty = document.createElement('div'); empty.style.color='#8a8a8a'; empty.style.textAlign='center'; empty.style.fontSize='18px'; empty.textContent = 'No animatronics on this camera'; view.appendChild(empty);
-    }
-
-    live.appendChild(label); live.appendChild(view);
-    picture.appendChild(map); picture.appendChild(live);
-
-    cameraView.appendChild(picture);
   }
 
-  // attempt golden spawn
-  function trySpawnGolden(){ if(goldenTrump.active) return; if (Math.floor(Math.random()*goldenTrump.spawnDenominator)===0){ goldenTrump.active=true; goldenTrump.timer=8; incrementGoldenCount(); log('A cold hush falls over the building... A rare presence has appeared.'); renderAnimList(); renderCamera(); } }
+  // Render camera with picture layout; office view uses panorama + pan handlers
+  function renderCamera(){
+    cameraView.innerHTML=''; cameraTitle.textContent = `Camera: ${cams[currentCam].name} (${currentCam})`;
+    const picture = document.createElement('div'); picture.className='picture';
+    const map = document.createElement('div'); map.className='map';
+    const positions=[0,1,2,3,4,5,6];
+    positions.forEach(p=>{ const div=document.createElement('div'); div.className='pos'; if(p===cams[currentCam].posView) div.classList.add('current'); div.innerHTML=`<span>Pos ${p}</span>`; const present=anims.filter(a=>a.pos===p); const dotWrap=document.createElement('span'); dotWrap.className='cam-thumb'; const dot=document.createElement('span'); dot.className='dot'; dot.textContent = present.length ? present[0].emoji : ''; dotWrap.appendChild(dot); div.appendChild(dotWrap); map.appendChild(div); });
+
+    const live=document.createElement('div'); live.className='live'; const label=document.createElement('div'); label.className='room-label'; label.textContent=cams[currentCam].name; const view=document.createElement('div'); view.className='view';
+
+    // If office cam — build panorama
+    if (cams[currentCam].posView === OFFICE_POS) {
+      const panorama = document.createElement('div'); panorama.className='panorama'; panorama.style.transform = `translateX(${ -100/3 - (panOffset / (view.clientWidth || 900)) * 100 }%)`;
+      // three panels: left (door/tools), center (desk/monitor), right (window/hall view)
+      for (let i=0;i<3;i++){
+        const panel = document.createElement('div'); panel.className='panel';
+        // small props per panel
+        if (i===0){ const p=document.createElement('div'); p.className='prop'; p.style.left='12px'; p.style.top='12px'; p.textContent = `Security tools`; panel.appendChild(p); }
+        if (i===1){ const p=document.createElement('div'); p.className='prop'; p.style.left='12px'; p.style.top='12px'; p.textContent = `Monitors`; panel.appendChild(p); const monitor = document.createElement('div'); monitor.style.width='60%'; monitor.style.height='60%'; monitor.style.background='linear-gradient(180deg,#031018,#07121a)'; monitor.style.borderRadius='6px'; monitor.style.display='flex'; monitor.style.alignItems='center'; monitor.style.justifyContent='center'; monitor.style.color='#89c2ff'; monitor.style.fontWeight='700'; monitor.textContent='LIVE MONITOR'; panel.appendChild(monitor); }
+        if (i===2){ const p=document.createElement('div'); p.className='prop'; p.style.right='12px'; p.style.top='12px'; p.textContent = `Calendar`; panel.appendChild(p); }
+        // show animatronics in office panel only if they are at office pos
+        const viewPos = cams[currentCam].posView;
+        const hereAnims = anims.filter(a=>a.pos===viewPos);
+        hereAnims.forEach((a, idx) => { const el = document.createElement('div'); el.style.position='absolute'; el.style.fontSize='48px'; el.style.bottom = (40 + idx*80) + 'px'; el.style.left='50%'; el.style.transform='translateX(-50%)'; el.textContent = a.emoji; el.title = a.label; panel.appendChild(el); });
+        // golden
+        if (goldenTrump.active && goldenTrump.pos===viewPos){ const g=document.createElement('div'); g.className='golden sitting'; g.style.position='absolute'; g.style.left='50%'; g.style.top='28%'; g.style.transform='translateX(-50%)'; g.textContent='🟡T'; panel.appendChild(g); }
+        panorama.appendChild(panel);
+      }
+      view.appendChild(panorama);
+      live.appendChild(label); live.appendChild(view); picture.appendChild(map); picture.appendChild(live); cameraView.appendChild(picture);
+      // enable panning handlers for this view
+      // use setTimeout to ensure DOM measured
+      setTimeout(()=> enablePanHandlers(view), 50);
+      return;
+    }
+
+    // non-office cameras: simple static view with anims if present
+    const viewPos = cams[currentCam].posView; const hereAnims = anims.filter(a=>a.pos===viewPos);
+    if (hereAnims.length>0){ hereAnims.forEach((a,idx)=>{ const el=document.createElement('div'); el.style.position='absolute'; el.style.fontSize='48px'; el.style.bottom=(10+idx*80)+'px'; el.style.left='50%'; el.style.transform='translateX(-50%)'; el.textContent=a.emoji; el.title=a.label; view.appendChild(el); }); }
+    if (goldenTrump.active && goldenTrump.pos===viewPos){ const g=document.createElement('div'); g.className='golden sitting'; g.style.position='absolute'; g.style.left='50%'; g.style.top='28%'; g.style.transform='translateX(-50%)'; g.textContent='🟡T'; view.appendChild(g); }
+    if (hereAnims.length===0 && !(goldenTrump.active && goldenTrump.pos===viewPos)){ const empty=document.createElement('div'); empty.style.color='#8a8a8a'; empty.style.textAlign='center'; empty.style.fontSize='18px'; empty.textContent='No animatronics on this camera'; view.appendChild(empty); }
+
+    // props for lobby/office style cameras
+    if (viewPos===5){ const door=document.createElement('div'); door.className='prop ' + (state.leftDoor||state.rightDoor ? 'door-closed' : ''); door.style.left='12px'; door.style.top='12px'; door.textContent=`Doors: ${state.leftDoor||state.rightDoor?'CLOSED':'OPEN'}`; view.appendChild(door); const light=document.createElement('div'); light.className='prop ' + (state.leftLight||state.rightLight ? 'light-on' : ''); light.style.right='12px'; light.style.top='12px'; light.textContent=`Lights: ${state.leftLight||state.rightLight?'ON':'OFF'}`; view.appendChild(light); }
+
+    live.appendChild(label); live.appendChild(view); picture.appendChild(map); picture.appendChild(live); cameraView.appendChild(picture);
+  }
+
+  function trySpawnGolden(){ if(goldenTrump.active) return; if(Math.floor(Math.random()*goldenTrump.spawnDenominator)===0){ goldenTrump.active=true; goldenTrump.timer=8; incrementGoldenCount(); log('A cold hush falls over the building... A rare presence has appeared.'); renderAnimList(); renderCamera(); } }
 
   function showJumpscare(victimLabel){ jumpscareTitle.textContent=victimLabel; jumpscareSub.textContent='YOU DIED'; jumpscare.classList.add('show'); setTimeout(()=>{ jumpscare.querySelector('.image').style.background='#220000'; jumpscareTitle.style.color='#ffdddd'; },40); try{ playScreamAndBoom(); }catch(e){} setTimeout(()=>{ jumpscare.classList.remove('show'); },2200); }
 
   function endGame(won, reason, killerLabel){ running=false; clearInterval(tickInterval); messageEl.textContent=reason; messageEl.style.color=won? 'lime':'red'; log(reason + (won? ' — WIN':' — GAME OVER')); startBtn.disabled=false; if(!won) showJumpscare(killerLabel||'JUMPSCARE'); }
 
-  function tick(){ if(!running) return; nightTime++; clockEl.textContent = `Night: ${nightTime} / ${nightLength}`; trySpawnGolden(); anims.forEach(a=>{ if(a.pos>=OFFICE_POS) return; const base = a.aggressiveness + (nightTime/nightLength)*0.22; let penalty=0; if (a.pos>=OFFICE_POS-2){ if ((a.side==='left'&&state.leftDoor) || (a.side==='right'&&state.rightDoor)) penalty+=0.6; if ((a.side==='left'&&state.leftLight)||(a.side==='right'&&state.rightLight)) penalty+=0.4; } const chance=Math.max(0,base-penalty); if(Math.random()<chance){ a.pos=Math.min(OFFICE_POS,a.pos+1); log(`${a.label} moves to pos ${a.pos}`); } }); if(goldenTrump.active){ goldenTrump.timer=Math.max(0,goldenTrump.timer-1); if(goldenTrump.timer<=0){ endGame(false,'Golden Trump appeared and attacked!','Golden Trump'); return; } } applyCameraEnergy(); applyDoorsLightsEnergy(); renderAnimList(); renderCamera(); anims.forEach(a=>{ if(a.pos>=OFFICE_POS){ const doorClosed = (a.side==='left')? state.leftDoor : state.rightDoor; const lightOn = (a.side==='left')? state.leftLight : state.rightLight; let attackChance=0.85; if(doorClosed) attackChance-=0.85; if(lightOn) attackChance-=0.4; if(energy<=0){ log('Energy depleted! Systems failing...'); state.leftDoor=false; state.rightDoor=false; } if(!doorClosed && Math.random()<attackChance){ endGame(false,`${a.label} got you!`,a.label); } } }); if(energy<=0){ messageEl.textContent='WARNING: energy depleted'; messageEl.style.color='orange'; } else messageEl.textContent=''; if(nightTime>=nightLength) endGame(true,'You survived the night!'); }
+  function tick(){ if(!running) return; nightTime++; clockEl.textContent=`Night: ${nightTime} / ${nightLength}`; trySpawnGolden(); anims.forEach(a=>{ if(a.pos>=OFFICE_POS) return; const base=a.aggressiveness + (nightTime/nightLength)*0.22; let penalty=0; if(a.pos>=OFFICE_POS-2){ if((a.side==='left'&&state.leftDoor)||(a.side==='right'&&state.rightDoor)) penalty+=0.6; if((a.side==='left'&&state.leftLight)||(a.side==='right'&&state.rightLight)) penalty+=0.4; } const chance=Math.max(0,base-penalty); if(Math.random()<chance){ a.pos=Math.min(OFFICE_POS,a.pos+1); log(`${a.label} moves to pos ${a.pos}`); } }); if(goldenTrump.active){ goldenTrump.timer=Math.max(0,goldenTrump.timer-1); if(goldenTrump.timer<=0){ endGame(false,'Golden Trump appeared and attacked!','Golden Trump'); return; } } applyCameraEnergy(); applyDoorsLightsEnergy(); renderAnimList(); renderCamera(); anims.forEach(a=>{ if(a.pos>=OFFICE_POS){ const doorClosed=(a.side==='left')?state.leftDoor:state.rightDoor; const lightOn=(a.side==='left')?state.leftLight:state.rightLight; let attackChance=0.85; if(doorClosed) attackChance-=0.85; if(lightOn) attackChance-=0.4; if(energy<=0){ log('Energy depleted! Systems failing...'); state.leftDoor=false; state.rightDoor=false; } if(!doorClosed && Math.random()<attackChance){ endGame(false,`${a.label} got you!`,a.label); } } }); if(energy<=0){ messageEl.textContent='WARNING: energy depleted'; messageEl.style.color='orange'; } else messageEl.textContent=''; if(nightTime>=nightLength) endGame(true,'You survived the night!'); }
 
   function applyCameraEnergy(){ updateEnergy(-0.7); }
   function applyDoorsLightsEnergy(){ let drain=0; if(state.leftDoor) drain+=0.8; if(state.rightDoor) drain+=0.8; if(state.leftLight) drain+=0.5; if(state.rightLight) drain+=0.5; updateEnergy(-drain); }
