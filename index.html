@@ -1,0 +1,537 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Animatronic Night — Charlie Kirk (Prototype)</title>
+<style>
+  * { box-sizing: border-box; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; }
+  body { margin: 0; background:#111; color:#eee; }
+  #game { max-width:1100px; margin:12px auto; padding:12px; }
+  header { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
+  h1 { margin:0; font-size:18px; }
+  #status { text-align:right; }
+  main { display:grid; grid-template-columns:260px 1fr 260px; gap:12px; }
+  .control-block { background:#1b1b1b; padding:10px; border-radius:6px; margin-bottom:12px; }
+  #cams button, #left-controls button, #startBtn { display:block; width:100%; margin:6px 0; padding:8px; background:#222; border:1px solid #333; color:#eee; border-radius:4px; cursor:pointer; }
+  #cameraView { background:#000; height:360px; border-radius:6px; overflow:hidden; display:flex; align-items:center; justify-content:center; border:4px solid #222; position:relative; }
+  #cameraTitle { margin-bottom:6px; }
+  .anim { width:72px; height:72px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:36px; color:#111; font-weight:bold; }
+  .anim.pos-0 { background:#f5a623; }
+  .anim.pos-1 { background:#d0021b; }
+  .anim.pos-2 { background:#417505; }
+  .anim.pos-3 { background:#9013fe; }
+  .anim.pos-4 { background:#50e3c2; }
+  .anim.pos-5 { background:#fff176; color:#000; }
+  .golden {
+    width:86px;
+    height:86px;
+    border-radius:8px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:34px;
+    color:#222;
+    font-weight:900;
+    background: linear-gradient(180deg, #ffd54f, #ffb300);
+    border: 3px solid rgba(255, 223, 97, 0.9);
+    box-shadow: 0 0 18px rgba(255, 193, 7, 0.6), inset 0 -6px 10px rgba(0,0,0,0.12);
+    transform: translateY(0);
+  }
+  .golden.sitting { transform: translateY(6px) rotate(-2deg); }
+  #animList { list-style:none; padding:0; margin:0; }
+  #animList li { padding:6px 8px; border-bottom:1px solid #222; }
+  #log { background:#0b0b0b; padding:8px; height:160px; overflow:auto; border-radius:6px; font-size:13px; color:#cfcfcf; }
+  footer { display:flex; justify-content:space-between; align-items:center; margin-top:12px; }
+  #message { font-weight:700; }
+  #clock, #energy { font-size:14px; margin:2px 0; }
+  /* fullscreen jumpscare overlay */
+  #jumpscare {
+    position:fixed; inset:0; display:flex; align-items:center; justify-content:center;
+    background:rgba(0,0,0,0); pointer-events:none; opacity:0; transition: opacity 0.12s ease;
+    z-index:9999;
+  }
+  #jumpscare.show { pointer-events:auto; opacity:1; }
+  #jumpscare .image {
+    width:100%; height:100%; display:flex; align-items:center; justify-content:center;
+    background:#000; color:#fff; font-size:48px; font-weight:900; flex-direction:column;
+  }
+  #jumpscare .image .big { font-size:18vw; line-height:0.8; text-shadow: 0 0 20px rgba(255,0,0,0.6); }
+  #jumpscare .image .sub { font-size:6vw; opacity:0.9; margin-top:12px; }
+  /* small mobile tweak */
+  @media(max-width:600px){ #jumpscare .image .big{ font-size:36vw } #jumpscare .image .sub{ font-size:10vw } }
+</style>
+</head>
+<body>
+<div id="game">
+  <header>
+    <h1>Animatronic Night (Prototype)</h1>
+    <div id="status">
+      <div id="clock">Night: 0</div>
+      <div id="energy">Energy: <span id="energyVal">100</span>%</div>
+    </div>
+  </header>
+
+  <main>
+    <section id="left-controls">
+      <div class="control-block">
+        <h3>Doors & Lights</h3>
+        <button id="leftDoor">Toggle Left Door</button>
+        <button id="rightDoor">Toggle Right Door</button>
+        <button id="leftLight">Toggle Left Light</button>
+        <button id="rightLight">Toggle Right Light</button>
+      </div>
+      <div class="control-block">
+        <h3>Cameras</h3>
+        <div id="cams">
+          <button data-cam="0">Cam 0 (Stage)</button>
+          <button data-cam="1">Cam 1</button>
+          <button data-cam="2">Cam 2</button>
+          <button data-cam="3">Cam 3</button>
+          <button data-cam="4">Cam 4</button>
+          <button data-cam="5">Cam 5 (Hall)</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="view">
+      <div id="cameraTitle">Camera: Stage (0)</div>
+      <div id="cameraView"></div>
+    </section>
+
+    <section id="right-info">
+      <div class="control-block">
+        <h3>Animatronics</h3>
+        <ul id="animList"></ul>
+      </div>
+      <div class="control-block">
+        <h3>Log</h3>
+        <div id="log"></div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <button id="startBtn">Start Night</button>
+    <div id="message"></div>
+  </footer>
+</div>
+
+<!-- jumpscare overlay -->
+<div id="jumpscare" role="presentation" aria-hidden="true">
+  <div class="image" id="jumpscareImage" style="background:#000;">
+    <div class="big" id="jumpscareTitle">!!</div>
+    <div class="sub" id="jumpscareSub">...</div>
+  </div>
+</div>
+
+<script>
+(() => {
+  // --- DOM refs ---
+  const energyEl = document.getElementById('energyVal');
+  const clockEl = document.getElementById('clock');
+  const cameraView = document.getElementById('cameraView');
+  const cameraTitle = document.getElementById('cameraTitle');
+  const animList = document.getElementById('animList');
+  const logEl = document.getElementById('log');
+  const messageEl = document.getElementById('message');
+  const startBtn = document.getElementById('startBtn');
+  const jumpscare = document.getElementById('jumpscare');
+  const jumpscareTitle = document.getElementById('jumpscareTitle');
+  const jumpscareSub = document.getElementById('jumpscareSub');
+
+  // --- audio setup (created on first user gesture to satisfy autoplay restrictions) ---
+  let audioCtx = null;
+  function ensureAudioContext() {
+    if (!audioCtx) {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    return audioCtx;
+  }
+
+  function playScreamAndBoom() {
+    // Build a scream-ish noise + bandpass, then a low boom. Synthesized to avoid external files.
+    const ctx = ensureAudioContext();
+    // scream (noise + bandpass sweep)
+    const len = 1.2; // seconds
+    const sampleRate = ctx.sampleRate;
+    const buffer = ctx.createBuffer(1, Math.floor(len * sampleRate), sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (sampleRate * 0.7));
+    const src = ctx.createBufferSource();
+    src.buffer = buffer;
+
+    const bp = ctx.createBiquadFilter();
+    bp.type = 'bandpass';
+    bp.frequency.setValueAtTime(1200, ctx.currentTime);
+    bp.Q.value = 1.0;
+
+    const sg = ctx.createGain();
+    sg.gain.setValueAtTime(0.0001, ctx.currentTime);
+    sg.gain.linearRampToValueAtTime(0.9, ctx.currentTime + 0.12);
+    sg.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + len);
+
+    src.connect(bp);
+    bp.connect(sg);
+    sg.connect(ctx.destination);
+
+    // frequency sweep to feel like a scream
+    bp.frequency.linearRampToValueAtTime(2400, ctx.currentTime + 0.35);
+    bp.frequency.linearRampToValueAtTime(400, ctx.currentTime + 0.95);
+
+    src.start();
+
+    // boom after a short delay
+    const boomDelay = 0.65; // seconds after start of scream
+    setTimeout(() => {
+      const osc = ctx.createOscillator();
+      const g = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(80, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(30, ctx.currentTime + 0.9);
+      g.gain.setValueAtTime(0.0001, ctx.currentTime);
+      g.gain.linearRampToValueAtTime(1.0, ctx.currentTime + 0.01);
+      g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 1.0);
+      // add a bit of distortion/lowpass to make it punchier
+      const lp = ctx.createBiquadFilter();
+      lp.type = 'lowpass';
+      lp.frequency.setValueAtTime(120, ctx.currentTime);
+      osc.connect(g);
+      g.connect(lp);
+      lp.connect(ctx.destination);
+      osc.start();
+      setTimeout(() => { osc.stop(); }, 1000);
+    }, boomDelay * 1000);
+  }
+
+  // --- game state ---
+  let energy = 100;
+  let nightTime = 0;
+  const nightLength = 60; // seconds to survive
+  let running = false;
+  let tickInterval = null;
+  let currentCam = 0;
+
+  const cams = [
+    { id:0, name:"Stage" },
+    { id:1, name:"Cam 1" },
+    { id:2, name:"Cam 2" },
+    { id:3, name:"Cam 3" },
+    { id:4, name:"Cam 4" },
+    { id:5, name:"Hall / Office" }
+  ];
+
+  // Charlie Kirk (he) — single animatronic
+  const anims = [
+    { id: 'CK', label: 'Charlie Kirk', pos: 0, aggressiveness: 0.12, emoji: '🎭', side: 'left' }
+  ];
+
+  // Golden Trump — extremely rare male variant (he)
+  const goldenTrump = {
+    active: false,
+    pos: 2, // middle of the room
+    timer: 0,
+    spawnDenominator: 726279 // 1 / 726,279 chance per tick
+  };
+
+  const state = { leftDoor:false, rightDoor:false, leftLight:false, rightLight:false };
+
+  // --- helpers ---
+  function updateEnergy(delta) {
+    energy = Math.max(0, Math.min(100, energy + delta));
+    energyEl.textContent = Math.round(energy);
+  }
+
+  function log(msg) {
+    const t = new Date().toLocaleTimeString();
+    logEl.innerHTML = `<div>[${t}] ${msg}</div>` + logEl.innerHTML;
+  }
+
+  function renderAnimList() {
+    animList.innerHTML = '';
+    anims.forEach(a => {
+      const li = document.createElement('li');
+      li.textContent = `${a.label} (pos ${a.pos})`;
+      animList.appendChild(li);
+    });
+    if (goldenTrump.active) {
+      const li = document.createElement('li');
+      li.textContent = `!!! Golden Trump is present (pos ${goldenTrump.pos}) — he is sitting`;
+      li.style.color = '#ffd54f';
+      li.style.fontWeight = '800';
+      animList.insertBefore(li, animList.firstChild);
+    }
+  }
+
+  function renderCamera() {
+    cameraView.innerHTML = '';
+    cameraTitle.textContent = `Camera: ${cams[currentCam].name} (${currentCam})`;
+
+    const cols = document.createElement('div');
+    cols.style.display = 'flex';
+    cols.style.width = '90%';
+    cols.style.justifyContent = 'space-between';
+
+    for (let p=0;p<6;p++){
+      const col = document.createElement('div');
+      col.style.flex = '1';
+      col.style.margin = '6px';
+      col.style.height = '84%';
+      col.style.borderRadius = '6px';
+      col.style.background = (p === currentCam) ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.02)';
+      col.style.position = 'relative';
+      col.style.display = 'flex';
+      col.style.alignItems = 'center';
+      col.style.justifyContent = 'center';
+      col.style.flexDirection = 'column';
+
+      const lbl = document.createElement('div');
+      lbl.textContent = `Pos ${p}`;
+      lbl.style.position = 'absolute';
+      lbl.style.top = '6px';
+      lbl.style.left = '6px';
+      lbl.style.fontSize = '12px';
+      lbl.style.color = '#bbb';
+      col.appendChild(lbl);
+
+      // show anims
+      anims.filter(a => a.pos === p).forEach(a => {
+        const animEl = document.createElement('div');
+        animEl.className = 'anim pos-' + p;
+        animEl.textContent = a.emoji;
+        animEl.title = a.label;
+        col.appendChild(animEl);
+      });
+
+      // show golden if active at this position (sitting like Golden Freddy)
+      if (goldenTrump.active && goldenTrump.pos === p) {
+        const g = document.createElement('div');
+        g.className = 'golden sitting';
+        g.textContent = '🟡T';
+        g.title = 'Golden Trump (rare spawn) — he is sitting';
+        col.appendChild(g);
+      }
+
+      cols.appendChild(col);
+    }
+
+    cameraView.appendChild(cols);
+
+    if (currentCam === 5) {
+      const overlay = document.createElement('div');
+      overlay.style.position='absolute';
+      overlay.style.bottom='12px';
+      overlay.style.right='12px';
+      overlay.style.display='flex';
+      overlay.style.gap='10px';
+      overlay.style.fontSize='14px';
+      overlay.style.color='#fff';
+      overlay.innerHTML = `Left door: ${state.leftDoor ? 'CLOSED' : 'OPEN'} • Right door: ${state.rightDoor ? 'CLOSED' : 'OPEN'} • L: ${state.leftLight ? 'ON' : 'OFF'} R: ${state.rightLight ? 'ON' : 'OFF'}`;
+      cameraView.appendChild(overlay);
+    }
+  }
+
+  function applyCameraEnergy() { updateEnergy(-0.7); }
+  function applyDoorsLightsEnergy() {
+    let drain = 0;
+    if (state.leftDoor) drain += 0.8;
+    if (state.rightDoor) drain += 0.8;
+    if (state.leftLight) drain += 0.5;
+    if (state.rightLight) drain += 0.5;
+    updateEnergy(-drain);
+  }
+
+  function trySpawnGolden() {
+    if (goldenTrump.active) return;
+    if (Math.floor(Math.random() * goldenTrump.spawnDenominator) === 0) {
+      goldenTrump.active = true;
+      goldenTrump.timer = 8; // seconds until attack if not checked on cams
+      log('A cold hush falls over the building... A rare presence has appeared.');
+      log('Golden Trump has spawned in the middle of the rooms. Go back to the cameras to send him away (very rare). He is male — check cams to dispel him.');
+      renderAnimList();
+      renderCamera();
+    }
+  }
+
+  // full-screen jumpscare + play sound, then end game
+  function showJumpscare(victimLabel) {
+    // prepare overlay
+    jumpscareTitle.textContent = victimLabel;
+    jumpscareSub.textContent = 'YOU DIED';
+    jumpscare.classList.add('show');
+    // flash color and enlarge, then remove after a bit
+    setTimeout(() => {
+      jumpscare.querySelector('.image').style.background = '#220000';
+      jumpscareTitle.style.color = '#ffdddd';
+    }, 40);
+    // play scream+boom
+    try { playScreamAndBoom(); } catch(e) {}
+    // keep overlay a moment, then allow restart view
+    setTimeout(() => {
+      jumpscare.classList.remove('show');
+    }, 2200);
+  }
+
+  function endGame(won, reason, killerLabel) {
+    running = false;
+    clearInterval(tickInterval);
+    messageEl.textContent = reason;
+    messageEl.style.color = won ? 'lime' : 'red';
+    log(reason + (won ? ' — WIN' : ' — GAME OVER'));
+    startBtn.disabled = false;
+    if (!won) {
+      // play jumpscare for the killer
+      showJumpscare(killerLabel || 'JUMPSCARE');
+    }
+  }
+
+  // --- tick (game loop) ---
+  function tick() {
+    if (!running) return;
+    nightTime++;
+    clockEl.textContent = `Night: ${nightTime} / ${nightLength}`;
+
+    // possible golden spawn each second
+    trySpawnGolden();
+
+    anims.forEach(a => {
+      if (a.pos >= 5) return;
+      const base = a.aggressiveness + (nightTime / nightLength) * 0.22;
+      let penalty = 0;
+      if (a.pos >= 4) {
+        if ((a.side === 'left' && state.leftDoor) || (a.side === 'right' && state.rightDoor)) penalty += 0.6;
+        if ((a.side === 'left' && state.leftLight) || (a.side === 'right' && state.rightLight)) penalty += 0.4;
+      }
+      const chance = Math.max(0, base - penalty);
+      if (Math.random() < chance) {
+        a.pos = Math.min(5, a.pos + 1);
+        log(`${a.label} moves to pos ${a.pos}`);
+      }
+    });
+
+    // goldenTrump countdown
+    if (goldenTrump.active) {
+      goldenTrump.timer = Math.max(0, goldenTrump.timer - 1);
+      if (goldenTrump.timer <= 0) {
+        // he attacks (instant kill)
+        endGame(false, 'Golden Trump appeared and attacked!', 'Golden Trump');
+        return;
+      }
+    }
+
+    applyCameraEnergy();
+    applyDoorsLightsEnergy();
+
+    renderAnimList();
+    renderCamera();
+
+    // check Charlie Kirk if in office (pos 5)
+    anims.forEach(a => {
+      if (a.pos >= 5) {
+        const doorClosed = (a.side === 'left') ? state.leftDoor : state.rightDoor;
+        const lightOn = (a.side === 'left') ? state.leftLight : state.rightLight;
+        let attackChance = 0.85;
+        if (doorClosed) attackChance -= 0.85;
+        if (lightOn) attackChance -= 0.4;
+        if (energy <= 0) {
+          log('Energy depleted! Systems failing...');
+          state.leftDoor = false; state.rightDoor = false;
+        }
+        if (!doorClosed && Math.random() < attackChance) {
+          endGame(false, `${a.label} got you!`, a.label);
+        }
+      }
+    });
+
+    if (energy <= 0) {
+      messageEl.textContent = 'WARNING: energy depleted';
+      messageEl.style.color = 'orange';
+    } else {
+      messageEl.textContent = '';
+    }
+
+    if (nightTime >= nightLength) {
+      endGame(true, 'You survived the night!');
+    }
+  }
+
+  // --- controls ---
+  document.getElementById('leftDoor').addEventListener('click', () => {
+    ensureAudioContext();
+    state.leftDoor = !state.leftDoor;
+    log(`Left door ${state.leftDoor ? 'CLOSED' : 'OPENED'}`);
+    renderCamera();
+    updateEnergy(-1.5);
+  });
+
+  document.getElementById('rightDoor').addEventListener('click', () => {
+    ensureAudioContext();
+    state.rightDoor = !state.rightDoor;
+    log(`Right door ${state.rightDoor ? 'CLOSED' : 'OPENED'}`);
+    renderCamera();
+    updateEnergy(-1.5);
+  });
+
+  document.getElementById('leftLight').addEventListener('click', () => {
+    ensureAudioContext();
+    state.leftLight = !state.leftLight;
+    log(`Left light ${state.leftLight ? 'ON' : 'OFF'}`);
+    renderCamera();
+    updateEnergy(-0.8);
+  });
+
+  document.getElementById('rightLight').addEventListener('click', () => {
+    ensureAudioContext();
+    state.rightLight = !state.rightLight;
+    log(`Right light ${state.rightLight ? 'ON' : 'OFF'}`);
+    renderCamera();
+    updateEnergy(-0.8);
+  });
+
+  document.getElementById('cams').addEventListener('click', (e) => {
+    const b = e.target.closest('button');
+    if (!b) return;
+    ensureAudioContext();
+    const cam = parseInt(b.dataset.cam);
+    currentCam = cam;
+    renderCamera();
+    updateEnergy(-0.5);
+    // clicking any camera after Golden Trump spawns sends him away
+    if (goldenTrump.active) {
+      goldenTrump.active = false;
+      goldenTrump.timer = 0;
+      log('You checked the cameras — Golden Trump has vanished. He was male.');
+      renderAnimList();
+      renderCamera();
+    }
+  });
+
+  startBtn.addEventListener('click', () => {
+    ensureAudioContext();
+    if (running) return;
+    energy = 100;
+    nightTime = 0;
+    running = true;
+    anims.forEach(a => a.pos = 0);
+    state.leftDoor = false; state.rightDoor = false;
+    state.leftLight = false; state.rightLight = false;
+    goldenTrump.active = false; goldenTrump.timer = 0;
+    renderAnimList();
+    renderCamera();
+    log('Night started');
+    startBtn.disabled = true;
+    tickInterval = setInterval(tick, 1000);
+  });
+
+  // initial render
+  renderAnimList();
+  renderCamera();
+  clockEl.textContent = `Night: ${nightTime} / ${nightLength}`;
+
+  // accessibility tip: resume audio when user taps screen anywhere (some browsers require)
+  document.body.addEventListener('click', ensureAudioContext, { once:true });
+})();
+</script>
+</body>
+</html>
